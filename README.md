@@ -1,7 +1,3 @@
-# About
-
-This repository teaches you all you need to know and gives you the tools to create amazing apps using Dexcom's Share API (without OAuth2).
-
 # How it Works
 ## Overview
 
@@ -112,7 +108,7 @@ Your response will look like this:
     }
 ]
 ```
-As you can see, it's an array of 2 items, because that's how many I wanted the program to get. The top one (item 0) is the most recent. The WT and ST both tell you when the value was taken. DT, I don't even know. Value is the actual glucose value taken. The trend is the arrow direction. The trend can be:
+As you can see, it's an array of 2 items, because that's how many I wanted the program to get. The top one (item 0) is the most recent. The WT and ST both tell you when the value was taken. DT, I don't even know. WT, ST, and DT are recorded as milliseconds since Unix Enoch. Value is the actual glucose value taken. The trend is the arrow direction. The trend can be:
 
 - Flat: steady
 - FortyFiveDown: slowly falling (-1/minute)
@@ -126,3 +122,38 @@ As you can see, it's an array of 2 items, because that's how many I wanted the p
 - RateOutOfRange: the bloodsugar is rising or falling too fast to be computable. This typically happens during sensor errors, where the bloodsugar will randomly drop 50 or more before the sensor goes out.
 
 So, now you are ready to start using the Dexcom API in your app! I created [dexcom](https://pub.dev/packages/dexcom), a package for Dart, and there's [pydexcom](https://github.com/gagebenne/pydexcom) for Python.
+
+```mermaid
+graph TD;
+    1[program]-->A
+    1-->B
+
+    A[username]-->D
+    B[password]-->D
+    C[application ID]-->D
+
+    A-->F
+    B-->F
+
+    D[get account ID]-->D1
+    D1{did it work?}
+    D1-->|yes| E
+    D1-->|no| D1NM[probably wrong username or password]
+    E[account ID]-->F
+
+    F[get session ID]-->F1
+    F1{did it work?}
+    F1-->|yes| G
+    F1-->|no| F1NM[unknown error]
+    G[session ID]-->H
+
+    I[minutes]-->H
+    J[max count]-->H
+
+    H[get user data]-->H1
+    H1{did it work?}
+    H1-->|yes| K
+    H1-->|no| K1NM[probably session expired]
+    K1NM-->F
+    K[user data]-->1
+```
