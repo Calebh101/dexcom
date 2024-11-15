@@ -1,10 +1,13 @@
+# About
+I made this repository to fill the missing documentation of the Dexcom API. This API only needs a username, password, and application ID to start. It will create a session and use that session to get glucose readings and data. I have created [dexcom for Dart](https://pub.dev/packages/dexcom) for Dart and Flutter programs, and potentially more platforms to come. (Looking for Python? [pydexcom](https://github.com/gagebenne/pydexcom) is where I got all this from.) Reach out if you have any questions.
+
 # How it Works
 ## Overview
 
 There is no documentation on this that I could find, so I'm going to make my own.
 Basically, your program will first get the account ID of the user. Then it uses the account ID to create a session and get the session ID. It then uses the session ID to get the glucose readings. If the glucose readings fail, this may be because of an expired session, so you will need to get the session ID again.
 
-Here are the application IDs, base URLs, and endpoints that the program will use to 
+Here are the application IDs, base URLs, and endpoints that the program will use to authenticate and retrieve data. I have already provided application IDs (from [pydexcom](https://github.com/gagebenne/pydexcom)) for you.
 ```dart
 "appId": {
     "us": "d89443d2-327c-4a6f-89e5-496bbb0317db",
@@ -123,6 +126,8 @@ As you can see, it's an array of 2 items, because that's how many I wanted the p
 
 So, now you are ready to start using the Dexcom API in your app! I created [dexcom](https://pub.dev/packages/dexcom), a package for Dart, and there's [pydexcom](https://github.com/gagebenne/pydexcom) for Python.
 
+## Diagram of the Process
+
 ```mermaid
 graph TD;
     1[program]-->A
@@ -133,7 +138,7 @@ graph TD;
     C[application ID]-->D
 
     A-->F
-    B-->F
+    C-->F
 
     D[get account ID]-->D1
     D1{did it work?}
