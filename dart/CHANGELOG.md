@@ -41,3 +41,7 @@ No releases yet. This will be updated when the program exits beta and into relea
 
 ### 0.1.6
 - Improved documentation
+
+### 0.1.7
+- Included a check for Internet
+- Improved error handling

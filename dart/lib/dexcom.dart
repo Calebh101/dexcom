@@ -128,26 +128,31 @@ class Dexcom {
     int minutes = 60,
     int maxCount = 100,
   }) async {
-    try {
-      final url = Uri.parse(
-          "${dexcomVar["baseUrl"][region]}/${dexcomVar["endpoint"]["data"]}");
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'sessionId': _sessionId,
-          'minutes': minutes,
-          'maxCount': maxCount,
-        }),
-      );
+    Map status = await _runSystemChecks();
+    if (status["status"]) {
+      try {
+        final url = Uri.parse(
+            "${dexcomVar["baseUrl"][region]}/${dexcomVar["endpoint"]["data"]}");
+        final response = await http.post(
+          url,
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'sessionId': _sessionId,
+            'minutes': minutes,
+            'maxCount': maxCount,
+          }),
+        );
 
-      if (response.statusCode == 200) {
-        return List<Map<String, dynamic>>.from(jsonDecode(response.body));
-      } else {
-        throw Exception(response.body);
+        if (response.statusCode == 200) {
+          return List<Map<String, dynamic>>.from(jsonDecode(response.body));
+        } else {
+          throw Exception("Unable to fetch readings");
+        }
+      } catch (e) {
+        rethrow;
       }
-    } catch (e) {
-      rethrow;
+    } else {
+      throw Exception(status["error"]);
     }
   }
 
@@ -178,7 +183,7 @@ class Dexcom {
     }
   }
 
-  // Verifies that the user has the correct username and password by creating a session and optionally getting the data to confirm that the user is valid
+  /// Verifies that the user has the correct username and password by creating a session and optionally getting the data to confirm that the user is valid
   Future<Map<String, dynamic>> verifyLogin(String username, String password,
       {bool getReadings = true}) async {
     try {
@@ -196,6 +201,15 @@ class Dexcom {
       }
     } catch (e) {
       return {"success": false, "error": "readings"};
+    }
+  }
+
+  Future<Map<String, dynamic>> _runSystemChecks() async {
+    try {
+      await http.get(Uri.parse('https://www.google.com/'));
+      return {"status": true};
+    } catch (e) {
+      return {"status": false, "error": "No Internet"};
     }
   }
 }
