@@ -1,5 +1,13 @@
 # About
-I made this repository to fill the missing documentation of the Dexcom API. This API only needs a username, password, and application ID to start. It will create a session and use that session to get glucose readings and data. I have created [dexcom for Dart](https://pub.dev/packages/dexcom) for Dart and Flutter programs, and potentially more platforms to come. (Looking for Python? [pydexcom](https://github.com/gagebenne/pydexcom) is where I got all this from.) Reach out if you have any questions.
+## What is this repository?
+
+I made this repository to fill the missing documentation of the Dexcom Share API. This API only needs a username, password, and application ID to start. It will create a session and use that session to get glucose readings and data. I have created [dexcom for Dart](https://pub.dev/packages/dexcom) for Dart and Flutter programs, and potentially more platforms to come. (Looking for Python? [pydexcom](https://github.com/gagebenne/pydexcom) is where I got all this from.) Reach out if you have any questions.
+
+## What is the Dexcom Share API?
+
+Dexcom is a CGM company. They produce CGMs, or continuous glucose monitors. These machines tell you your estimated bloodsugar without having to use a manual meter.
+
+The Dexcom Share API uses a URL to get your account ID, set up a session, then retrieve your glucose values. This makes it worlds easier to get your readings, as normally, you would have to set up a developer account, make an app, use OAuth2 to authorize said app (which requires a website), and then constantly use a refresh token to get new data. This is very tedious to do. So, this Dexcom Share API uses a direct URL to get your glucose data.
 
 # How it Works
 ## Overview
@@ -111,18 +119,18 @@ Your response will look like this:
     }
 ]
 ```
-As you can see, it's an array of 2 items, because that's how many I wanted the program to get. The top one (item 0) is the most recent. The `WT` and `ST` both tell you when the value was taken. `DT`, I don't even know. `WT`, `ST`, and `DT` are recorded as milliseconds since Unix Enoch. `Value` is the actual glucose value taken. The `Trend` is the arrow direction. The trend can be:
+As you can see, it's an array of 2 items, because that's how many I wanted the program to get. The top one (item 0) is the most recent. The WT and ST both tell you when the value was taken. DT, I don't even know. WT, ST, and DT are recorded as milliseconds since Unix Enoch. Value is the actual glucose value taken. The trend is the arrow direction. The trend can be:
 
-- `Flat`: steady
-- `FortyFiveDown`: slowly falling (-1/minute)
-- `FortyFiveUp`: slowly rising (+1/minute)
-- `SingleDown`: falling (-2/minute)
-- `SingleUp`: rising (+2/minute)
-- `DoubleDown`: quickly falling (-3/minute)
-- `DoubleUp`: quickly rising (+3/minute)
-- `None`: no trend
-- `NonComputable`: the graph is too wonky for Dexcom to know which way the glucose levels are going. You might be able to try to compute this yourself if you wanted to.
-- `RateOutOfRange`: the bloodsugar is rising or falling too fast to be computable. This typically happens during sensor errors, where the bloodsugar will randomly drop 50 or more before the sensor goes out.
+- Flat: steady
+- FortyFiveDown: slowly falling (-1/minute)
+- FortyFiveUp: slowly rising (+1/minute)
+- SingleDown: falling (-2/minute)
+- SingleUp: rising (+2/minute)
+- DoubleDown: quickly falling (-3/minute)
+- DoubleUp: quickly rising (+3/minute)
+- None: no trend
+- NonComputable: the graph is too wonky for Dexcom to know which way the glucose levels are going. You might be able to try to compute this yourself if you wanted to.
+- RateOutOfRange: the bloodsugar is rising or falling too fast to be computable. This typically happens during sensor errors, where the bloodsugar will randomly drop 50 or more before the sensor goes out.
 
 So, now you are ready to start using the Dexcom API in your app! I created [dexcom](https://pub.dev/packages/dexcom), a package for Dart, and there's [pydexcom](https://github.com/gagebenne/pydexcom) for Python.
 

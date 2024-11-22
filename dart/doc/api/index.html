@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
+  <meta name="description" content="dexcom API docs, for the Dart programming language.">
+  <title>dexcom - Dart API docs</title>
+
+
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+  
+  <link rel="stylesheet" href="static-assets/github.css?v1">
+  <link rel="stylesheet" href="static-assets/styles.css?v1">
+  <link rel="icon" href="static-assets/favicon.png?v1">
+
+  
+</head>
+
+
+<body data-base-href="" data-using-base-href="false" class="light-theme">
+
+<div id="overlay-under-drawer"></div>
+
+<header id="title">
+  <span id="sidenav-left-toggle" class="material-symbols-outlined" role="button" tabindex="0">menu</span>
+  <ol class="breadcrumbs gt-separated dark hidden-xs">
+    <li><a href="https://calebh101.web.app/dexcom">dexcom package</a></li>
+  </ol>
+  <div class="self-name">dexcom</div>
+  <form class="search navbar-right" role="search">
+    <input type="text" id="search-box" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+  <div class="toggle" id="theme-button" title="Toggle brightness">
+    <label for="theme">
+      <input type="checkbox" id="theme" value="light-theme">
+      <span id="dark-theme-button" class="material-symbols-outlined">
+        dark_mode
+      </span>
+      <span id="light-theme-button" class="material-symbols-outlined">
+        light_mode
+      </span>
+    </label>
+  </div>
+</header>
+<main>
+
+  <div id="dartdoc-main-content" class="main-content">
+      
+<section class="desc markdown">
+  <p>dexcom for Flutter allows you to use Dexcom Share to get your Dexcom CGM data, or anybody else's, to run your application. Includes time (in milliseconds since Enoch), reading, and trend. Use your email and password to have access to all your glucose data!</p>
+<h2 id="features">Features</h2>
+<p>Very simple to use.</p>
+<h2 id="usage">Usage</h2>
+<p>Authentication:</p>
+<pre class="language-dart"><code class="language-dart">String username = "username";
+String password = "password";
+var dexcom = Dexcom(username, password);
+List&lt;dynamic&gt;? response;
+
+try {
+    await dexcom.createSession();
+    print("Created session with dexcom: $dexcom");
+} catch (e) {
+    print("Session creation error: $e");
+}
+</code></pre>
+<p>This creates a dexcom instance and gets the session ID. You can now get readings.</p>
+<p>Retrieving data:</p>
+<pre class="language-dart"><code class="language-dart">try {
+    response = await dexcom.getGlucoseReadings(maxCount: 1, minutes: 60);
+    print("Read data with dexcom: $dexcom");
+} catch (e) {
+    print("Unable to read data with dexcom: $e");
+}
+
+if (response != null) {
+    print("Data received: $response");
+    return response;
+else {
+    print("Data is null");
+}
+</code></pre>
+<h2 id="additional-information">Additional information</h2>
+<p>This package was based off of pydexcom for Python. I (and some help from ChatGPT) ported it to Flutter.</p>
+<p>WARNING: THIS PACKAGE IS STILL IN BETA: IT MAY BE UNSTABLE! USE AT YOUR OWN RISK!</p>
+</section>
+
+
+      <section class="summary">
+          <h2>Libraries</h2>
+        <dl>
+          <dt id="dexcom">
+  <span class="name"><a href="dexcom/dexcom-library.html">dexcom</a></span> 
+
+</dt>
+<dd>
+</dd>
+
+        </dl>
+      </section>
+
+  </div> <!-- /.main-content -->
+
+  <div id="dartdoc-sidebar-left" class="sidebar sidebar-offcanvas-left">
+    <!-- The search input and breadcrumbs below are only responsively visible at low resolutions. -->
+<header id="header-search-sidebar" class="hidden-l">
+  <form class="search-sidebar" role="search">
+    <input type="text" id="search-sidebar" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+</header>
+
+<ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
+    <li><a href="https://calebh101.web.app/dexcom">dexcom package</a></li>
+</ol>
+
+
+    <h5 class="hidden-xs"><span class="package-name">dexcom</span> <span class="package-kind">package</span></h5>
+    <ol>
+      <li class="section-title">Libraries</li>
+      <li><a href="dexcom/dexcom-library.html">dexcom</a></li>
+</ol>
+
+  </div>
+
+  <div id="dartdoc-sidebar-right" class="sidebar sidebar-offcanvas-right">
+  </div>
+
+</main>
+
+<footer>
+  <span class="no-break">
+    dexcom
+      0.0.0
+  </span>
+
+  
+</footer>
+
+
+
+<script src="static-assets/highlight.pack.js?v1"></script>
+<script src="static-assets/docs.dart.js"></script>
+
+
+
+</body>
+
+</html>
+
