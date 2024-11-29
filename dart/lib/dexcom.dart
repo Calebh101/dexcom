@@ -1,11 +1,13 @@
+/// Main library that controls all the http, sessions, and data processing
+library dexcom;
+
 import 'dart:convert'; // Convert JSON into URL body
 
 import 'package:http/http.dart'
     as http; // Fetch account ID, session ID, and user data
 import 'package:intl/intl.dart'; // Get region
 
-/// Gets the current region of the user
-String getRegion() {
+String _getRegion() {
   String region = "us";
   String locale = Intl.getCurrentLocale();
   List<String> localeParts = locale.split('_');
@@ -43,12 +45,12 @@ Map dexcomVar = {
 /// Main class that controls all of the functions
 class Dexcom {
   /// Gets the region of the user using getRegion()
-  final String region = getRegion();
+  final String region = _getRegion();
   final String _username;
   final String _password;
   String? _accountId;
   String? _sessionId;
-  final String _applicationId = dexcomVar["appId"][getRegion()];
+  final String _applicationId = dexcomVar["appId"][_getRegion()];
 
   /// Makes a Dexcom with the username and password
   Dexcom(this._username, this._password);

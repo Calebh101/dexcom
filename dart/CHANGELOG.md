@@ -1,6 +1,3 @@
-# Release
-No releases yet. This will be updated when the program exits beta and into release. During the beta, there may be random substantial updates or random updates that mean nothing, like improving documentation.
-
 # Beta
 
 ### 0.0.0
@@ -15,10 +12,8 @@ No releases yet. This will be updated when the program exits beta and into relea
 - Added `verifyLogin` function to verify a login
 - Improved functionality and error handling
 
-<!--
 ### 0.1.1
 - Improved documentation
--->
 
 ### 0.1.2
 - Removed dart:ui library in favor of using dart:io to get region, now allowing all Dart programs to use the dexcom package instead of just Flutter programs
@@ -45,3 +40,6 @@ No releases yet. This will be updated when the program exits beta and into relea
 ### 0.1.7
 - Included a check for Internet
 - Improved error handling
+
+### 0.1.8
+- Improved documentation
