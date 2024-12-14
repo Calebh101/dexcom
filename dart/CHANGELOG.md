@@ -43,3 +43,7 @@
 
 ### 0.1.8
 - Improved documentation
+
+### 0.1.9
+- Completely rewrote example as a fully functional Flutter app with detailed examples and processes
+- Updated Important Information in README.md

@@ -46,14 +46,19 @@ Map dexcomVar = {
 class Dexcom {
   /// Gets the region of the user using getRegion()
   final String region = _getRegion();
-  final String _username;
-  final String _password;
+
+  /// Username used to login to the Dexcom Share API, can be email, username, or phone number
+  final String username;
+
+  /// Password used to login to the Dexcom Share API
+  final String password;
+
   String? _accountId;
   String? _sessionId;
   final String _applicationId = dexcomVar["appId"][_getRegion()];
 
   /// Makes a Dexcom with the username and password
-  Dexcom(this._username, this._password);
+  Dexcom(this.username, this.password);
 
   /// Removes quotes from the uuids
   String formatUuid(String uuid) {
@@ -72,8 +77,8 @@ class Dexcom {
         url,
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          'accountName': _username,
-          'password': _password,
+          'accountName': username,
+          'password': password,
           'applicationId': dexcomVar["appId"][region],
         }),
       );
@@ -98,7 +103,7 @@ class Dexcom {
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'accountId': _accountId,
-          'password': _password,
+          'password': password,
           'applicationId': _applicationId,
         }),
       );

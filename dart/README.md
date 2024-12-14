@@ -2,17 +2,17 @@
 
 dexcom for Dart allows you to use Dexcom Share to get your Dexcom CGM data, or anybody else's, to run your application. Includes time (in milliseconds since Enoch), reading, and trend. Use only your email and password to have access to all your glucose data! The username can be an email, username, or phone.
 
-# Important Info
+# Important Information
 
 WARNING: This package is in beta (signified by the version 0.x.x). Please use at your own risk.
 
-WARNING: This package fetches, processes, calculates, and displays real-time blood glucose levels. DO NOT USE THIS FOR IMPORTANT MEDICAL TREATMENT DECISIONS.
+WARNING: This package fetches, processes, calculates, and outputs real-time blood glucose levels. DO NOT USE/ADVERTISE THIS FOR IMPORTANT MEDICAL TREATMENT DECISIONS.
 
-WE ARE NOT RESPONSIBLE FOR ANY MEDICAL INCIDENTS/EMERGENCIES CREATED BECAUSE OF THIS PROGRAM. USE AT YOUR OWN RISK.
+WE ARE NOT RESPONSIBLE FOR ANY MEDICAL INCIDENTS/EMERGENCIES CREATED/ELEVATED BECAUSE OF THIS PROGRAM OR ANY PROGRAMS USING IT. USE AT YOUR OWN RISK.
 
 # Features
 
-Very simple to use. Just create a Dexcom object with a username and password, then fetch the user's latest readings. The script takes care of all the account IDs, the session IDs, and the session creating automatically.
+Very simple to use. Just create a Dexcom object with a username and password, then fetch the user's latest readings. The script takes care of all the account IDs, the session IDs, and the session creating automatically. The username can be email, username, or phone number.
 
 # Usage
 
