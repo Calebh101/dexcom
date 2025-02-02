@@ -1,4 +1,7 @@
 # About
+
+Version: 0.0.0A Beta
+
 ## What is this repository?
 
 I made this repository to fill the missing documentation of the Dexcom Share API. This API only needs a username, password, and application ID to start. It will create a session and use that session to get glucose readings and data. I have created [dexcom for Dart](https://pub.dev/packages/dexcom) for Dart and Flutter programs, and potentially more platforms to come. (Looking for Python? [pydexcom](https://github.com/gagebenne/pydexcom) is where I got all this from.) Reach out if you have any questions.
@@ -170,3 +173,9 @@ graph TD;
     K1NM-->F
     K[user data]-->1
 ```
+
+# Changelog
+
+## 0.0.0A
+
+- Needed to add versioning for this so I am listing the first version quite a bit after I started the project
