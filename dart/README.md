@@ -68,20 +68,22 @@ else {
 This actually retrieves the glucose readings from the user. If it fails, it automatically tries to recreate the session. This is sample data (actually taken from a real reading):
 ```json
 [
-    {
-        WT: Date(1731645818222),
-        ST: Date(1731645818222),
-        DT: Date(1731645818222-0600),
-        Value: 155,
-        Trend: Flat
-    },
-    {
-        WT: Date(1731645518663),
-        ST: Date(1731645518663),
-        DT: Date(1731645518663-0600),
-        Value: 155,
-        Trend: FortyFiveDown
-    }
+  {
+    "WT": "2022-11-22T17:29:54.000Z", 
+    "ST": "2022-11-22T17:29:54.000Z", 
+    "DT": "2022-11-22T11:29:54.000-06:00", 
+    "Value": 162, 
+    "Trend": "FortyFiveUp", 
+    "TimeSince": 21145 // Milliseconds from when the reading was taken til now. This would be 21 seconds.
+  },
+  {
+    "WT": "2022-11-22T17:24:54.000Z", 
+    "ST": "2022-11-22T17:24:54.000Z", 
+    "DT": "2022-11-22T11:24:54.000-06:00", 
+    "Value": 159, 
+    "Trend": "FortyFiveUp", 
+    "TimeSince": 321145 // This would be 321 seconds (around 5.5 minutes).
+  }
 ]
 ```
 As you can see, it's an array of 2 items, because that's how many I wanted the program to get. The top one (item 0) is the most recent. The WT and ST both tell you when the value was taken. DT, I don't even know. Value is the actual glucose value taken. The trend is the arrow direction. The trend can be:
@@ -93,8 +95,41 @@ As you can see, it's an array of 2 items, because that's how many I wanted the p
 - DoubleDown: quickly falling (-3/minute)
 - DoubleUp: quickly rising (+3/minute)
 - None: no trend
-- NonComputable: the graph is too wonky for Dexcom to know which way the glucose levels are going. You might be able to try to compute this yourself if you wanted to.
-- RateOutOfRange: the bloodsugar is rising or falling too fast to be computable. This typically happens during sensor errors, where the bloodsugar will randomly drop 50 or more before the sensor goes out.
+- NonComputable: the graph is too wonky for Dexcom to know which way the glucose levels are going. You might be able to try to compute it yourself if you wanted to.
+- RateOutOfRange: the bloodsugar is rising or falling too fast to be computable. This typically happens during sensor errors, where the bloodsugar will randomly drop 50 or more before when the sensor malfunctions.
+
+## Listening:
+
+First, make a new DexcomStreamProvider object:
+
+```dart
+DexcomStreamProvider provider = DexcomStreamProvider(object, oneAtATime: bool, debug: bool, interval: int, buffer: int);
+```
+
+Parameters:
+object: The Dexcom object to listen to.
+maxCount: How many pieces of data should be sent with each new incoming data. This is recommended to be a low number.
+debug: Show debug logs.
+buffer: How long the function should wait after the timer hits the interval before fetching. This is used to give the client's Dexcom time to upload its reading.
+
+```dart
+provider.listen(
+    onData: (data) => print('Stream received: $data'),
+    onError: (error) => print('Stream errored: $error'),
+    onTimerChange: (time) print("Stream timer: $time"),
+    cancelOnError: false, // shut down when an error is received
+);
+```
+
+This will call onData when new data is received, onError when it throws an error, and onTimerChange when the timer is changed, which is normally every second. (onTimerChange is mainly a debug option, as you can access provider.timer to get the current timer instead of using onTimerChange.)
+
+To refresh the readings early:
+
+```dart
+provider.refresh();
+```
+
+This just sets the timer to 0.
 
 # Additional Information
 

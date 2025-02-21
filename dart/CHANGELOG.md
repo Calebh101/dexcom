@@ -52,3 +52,10 @@
 - Updated Dexcom() to not set username and password as finals, and add an optional region parameter
 - Improved documentation
 - Updated dependencies
+
+## 0.2.0 - Breaking Changes
+- Now a new DexcomStreamProvider class, which makes it easy to listen to a Dexcom object
+- Included a Dart example with a Flutter example
+- Other small (but potentially breaking) changes:
+    - A lot of methods in the Dexcom class were made private
+    - The constructor is now named ((parameter: value) instead of just (value))

@@ -104,8 +104,8 @@ class _HomeState extends State<Home> {
   Future<List> getGlucoseReadings(String username, String password) async {
     print("Loading...");
     try {
-      Dexcom dexcom = Dexcom(username, password);
-      List readings = await dexcom.getGlucoseReadings(maxCount: 6);
+      Dexcom dexcom = Dexcom(username: username, password: password);
+      List readings = (await dexcom.getGlucoseReadings(maxCount: 6))!;
       return readings;
     } catch (e) {
       showDialogue("Unable to verify login", e.toString());
@@ -115,9 +115,9 @@ class _HomeState extends State<Home> {
 
   Future<void> verifyLogin(String username, String password) async {
     print("Loading...");
-    Dexcom dexcom = Dexcom(username, password);
+    Dexcom dexcom = Dexcom(username: username, password: password);
     try {
-      Map verify = await dexcom.verifyLogin(username, password);
+      Map verify = await dexcom.verify();
       if (verify["success"]) {
         return;
       } else {
