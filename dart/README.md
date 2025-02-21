@@ -20,7 +20,8 @@ Very simple to use. Just create a Dexcom object with a username and password, th
 ```dart
 String username = "username";
 String password = "password";
-var dexcom = Dexcom(username, password);
+String region = "region";
+var dexcom = Dexcom(username, password, {region: region}); // region is set automatically if not manually set
 List<dynamic>? response;
 
 try {
@@ -97,4 +98,6 @@ As you can see, it's an array of 2 items, because that's how many I wanted the p
 
 # Additional Information
 
-This package was based off of pydexcom for Python. I (and some help from ChatGPT) ported it to Flutter (version `0.0.0`), and then eventually Dart (version `0.1.2`).
+This package was based off of pydexcom for Python. I was able to port it to Flutter (version `0.0.0`), and then eventually Dart (version `0.1.2`).
+
+For contact/support, email me at [calebh101dev@icloud.com](mailto:calebh101dev@icloud.com).

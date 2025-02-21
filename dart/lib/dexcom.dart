@@ -44,24 +44,24 @@ Map dexcomVar = {
 
 /// Main class that controls all of the functions
 class Dexcom {
-  /// Gets the region of the user using getRegion()
-  final String region = _getRegion();
+  /// Region used to decide which server and app ID to use
+  String? region;
 
-  /// Username used to login to the Dexcom Share API, can be email, username, or phone number
-  final String username;
+  /// Username used to login to the Dexcom Share API; can be email, username, or phone number
+  String? username;
 
   /// Password used to login to the Dexcom Share API
-  final String password;
+  String? password;
 
   String? _accountId;
   String? _sessionId;
-  final String _applicationId = dexcomVar["appId"][_getRegion()];
+  String? _applicationId;
 
   /// Makes a Dexcom with the username and password
-  Dexcom(this.username, this.password);
+  Dexcom(this.username, this.password, {this.region});
 
-  /// Removes quotes from the uuids
-  String formatUuid(String uuid) {
+  // Removes quotes from the uuids
+  String _formatUuid(String uuid) {
     return uuid.replaceAll('"', '');
   }
 
@@ -84,7 +84,7 @@ class Dexcom {
       );
 
       if (response.statusCode == 200) {
-        return formatUuid(response.body);
+        return _formatUuid(response.body);
       } else {
         throw Exception(
             'Failed to authenticate: Could not retrieve Account ID: ${response.body}');
@@ -108,7 +108,7 @@ class Dexcom {
         }),
       );
       if (response.statusCode == 200) {
-        String responseS = formatUuid(response.body);
+        String responseS = _formatUuid(response.body);
         return responseS;
       } else {
         throw Exception(
@@ -121,10 +121,13 @@ class Dexcom {
 
   /// Creates a session by getting the accountId, then passing that into _getSessionId(), which will create a new session
   Future<void> createSession() async {
+    _init();
     try {
       _accountId ??= await _getAccountId();
       if (_accountId != null) {
         _sessionId ??= await _getSessionId();
+      } else {
+        throw Exception("_accountId was null");
       }
     } catch (e) {
       throw Exception("Unable to create session: $e");
@@ -135,31 +138,26 @@ class Dexcom {
     int minutes = 60,
     int maxCount = 100,
   }) async {
-    Map status = await _runSystemChecks();
-    if (status["status"]) {
-      try {
-        final url = Uri.parse(
-            "${dexcomVar["baseUrl"][region]}/${dexcomVar["endpoint"]["data"]}");
-        final response = await http.post(
-          url,
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({
-            'sessionId': _sessionId,
-            'minutes': minutes,
-            'maxCount': maxCount,
-          }),
-        );
+    try {
+      final url = Uri.parse(
+          "${dexcomVar["baseUrl"][region]}/${dexcomVar["endpoint"]["data"]}");
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'sessionId': _sessionId,
+          'minutes': minutes,
+          'maxCount': maxCount,
+        }),
+      );
 
-        if (response.statusCode == 200) {
-          return List<Map<String, dynamic>>.from(jsonDecode(response.body));
-        } else {
-          throw Exception("Unable to fetch readings");
-        }
-      } catch (e) {
-        rethrow;
+      if (response.statusCode == 200) {
+        return List<Map<String, dynamic>>.from(jsonDecode(response.body));
+      } else {
+        throw Exception("Unable to fetch readings");
       }
-    } else {
-      throw Exception(status["error"]);
+    } catch (e) {
+      rethrow;
     }
   }
 
@@ -168,6 +166,7 @@ class Dexcom {
       {int minutes = 60,
       int maxCount = 100,
       bool allowRetrySession = true}) async {
+    _init();
     if (_sessionId != null) {
       try {
         final readings =
@@ -193,6 +192,7 @@ class Dexcom {
   /// Verifies that the user has the correct username and password by creating a session and optionally getting the data to confirm that the user is valid
   Future<Map<String, dynamic>> verifyLogin(String username, String password,
       {bool getReadings = true}) async {
+    _init();
     try {
       await createSession();
       if (getReadings) {
@@ -211,12 +211,8 @@ class Dexcom {
     }
   }
 
-  Future<Map<String, dynamic>> _runSystemChecks() async {
-    try {
-      await http.get(Uri.parse('https://www.google.com/'));
-      return {"status": true};
-    } catch (e) {
-      return {"status": false, "error": "No Internet"};
-    }
+  void _init() {
+    region ??= _getRegion();
+    _applicationId ??= dexcomVar["appId"][_getRegion()];
   }
 }

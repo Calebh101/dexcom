@@ -1,12 +1,12 @@
 # Beta
 
-### 0.0.0
+## 0.0.0
 - Initial release
 
 ### 0.0.1
 - Improved documentation
 
-### 0.1.0
+## 0.1.0
 - Added automatic session renewal
 - Removed the requirement to have manual session renewal
 - Added `verifyLogin` function to verify a login
@@ -47,3 +47,8 @@
 ### 0.1.9
 - Completely rewrote example as a fully functional Flutter app with detailed examples and processes
 - Updated Important Information in README.md
+
+### 0.1.10
+- Updated Dexcom() to not set username and password as finals, and add an optional region parameter
+- Improved documentation
+- Updated dependencies
