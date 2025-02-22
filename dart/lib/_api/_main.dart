@@ -1,5 +1,5 @@
 /// Main library that controls all the http, sessions, and data processing.
-library dexcom;
+library main;
 
 import 'dart:convert'; // Convert JSON into URL body
 
@@ -27,12 +27,7 @@ String _getRegion() {
 
 // Lists all the application IDs, base URLs, and endpoints for the requests
 Map _dexcomData = {
-  "appId": {
-    "us": "d89443d2-327c-4a6f-89e5-496bbb0317db",
-    "ous": "d89443d2-327c-4a6f-89e5-496bbb0317db",
-    "jp": "d8665ade-9673-4e27-9ff6-92db4ce13d13"
-  },
-  "baseUrl": {
+  "base": {
     "us": "https://share2.dexcom.com/ShareWebServices/Services",
     "ous": "https://shareous1.dexcom.com/ShareWebServices/Services",
     "jp": "https://share.dexcom.jp/ShareWebServices/Services"
@@ -43,6 +38,61 @@ Map _dexcomData = {
     "data": "Publisher/ReadPublisherLatestGlucoseValues"
   }
 };
+
+/// Class for managing and retrieving app IDs.
+class DexcomAppIds {
+  /// US app ID.
+  String? us;
+
+  /// Out-of-US app ID.
+  String? ous;
+
+  /// Japanese app ID.
+  String? jp;
+
+  /// It is recommended to provide at least US and Japanese app IDs. At least one app ID is required.
+  /// US and out-of-US app IDs can be interchangeable, so if one is provided but the other isn't, then the one that isn't will be set to the one that is provided.
+  DexcomAppIds({this.us, this.ous, this.jp}) {
+    if (ous == null && us != null) {
+      ous = us;
+    }
+
+    if (us == null && ous != null) {
+      us = ous;
+    }
+
+    if (us == null && ous == null && jp == null) {
+      throw Exception("At least one app ID must be provided.");
+    }
+  }
+
+  /// Get the requested app ID.
+  String get({String? code}) {
+    code ??= _getRegion();
+    switch (code) {
+      case 'us':
+        if (us != null) {
+          return us!;
+        } else {
+          throw Exception("A US app ID was not provided.");
+        }
+      case 'ous':
+        if (ous != null) {
+          return ous!;
+        } else {
+          throw Exception("An out-of-US app ID was not provided.");
+        }
+      case 'jp':
+        if (jp != null) {
+          return jp!;
+        } else {
+          throw Exception("A Japanese app ID was not provided.");
+        }
+      default:
+        throw Exception("Invalid region code: $code.");
+    }
+  }
+}
 
 /// Main class that controls all of the functions.
 class Dexcom {
@@ -61,9 +111,6 @@ class Dexcom {
   // Session ID for the session, using account ID and password.
   String? _sessionId;
 
-  // Application ID used for API authentication.
-  String? _applicationId;
-
   /// Debug mode (shows extra logging).
   bool debug;
 
@@ -73,6 +120,9 @@ class Dexcom {
   /// Default maximum amount of glucose readings that can be fetched.
   int maxCount;
 
+  /// Application IDs to be used. You will be required to provide this in a later update.
+  DexcomAppIds? appIds;
+
   /// Makes a Dexcom with the username, password, and region (optional).
   Dexcom(
       {this.username,
@@ -80,7 +130,8 @@ class Dexcom {
       this.region,
       this.debug = false,
       this.minutes = 60,
-      this.maxCount = 12}) {
+      this.maxCount = 12,
+      this.appIds}) {
     if (maxCount < 1) {
       throw Exception("Max count cannot be less than 1.");
     }
@@ -112,12 +163,12 @@ class Dexcom {
 
   Future<String> _getAccountId() async {
     try {
-      if (!_dexcomData["baseUrl"].containsKey(region)) {
+      if (!_dexcomData["base"].containsKey(region)) {
         throw Exception('Invalid region: $region');
       }
 
       final url = Uri.parse(
-          "${_dexcomData["baseUrl"][region]}/${_dexcomData["endpoint"]["account"]}");
+          "${_dexcomData["base"][region]}/${_dexcomData["endpoint"]["account"]}");
       _log("Fetching account ID from $url", function: "_getAccountId");
 
       final response = await http.post(
@@ -126,7 +177,7 @@ class Dexcom {
         body: jsonEncode({
           'accountName': username,
           'password': password,
-          'applicationId': _dexcomData["appId"][region],
+          'applicationId': appIds!.get(code: region),
         }),
       );
 
@@ -144,7 +195,7 @@ class Dexcom {
   Future<String> _getSessionId() async {
     try {
       final url = Uri.parse(
-          "${_dexcomData["baseUrl"][region]}/${_dexcomData["endpoint"]["session"]}");
+          "${_dexcomData["base"][region]}/${_dexcomData["endpoint"]["session"]}");
       _log("Fetching session ID from $url", function: "_getSessionId");
 
       final response = await http.post(
@@ -153,7 +204,7 @@ class Dexcom {
         body: jsonEncode({
           'accountId': _accountId,
           'password': password,
-          'applicationId': _applicationId,
+          'applicationId': appIds!.get(code: region),
         }),
       );
       if (response.statusCode == 200) {
@@ -192,7 +243,7 @@ class Dexcom {
 
     try {
       final url = Uri.parse(
-          "${_dexcomData["baseUrl"][region]}/${_dexcomData["endpoint"]["data"]}");
+          "${_dexcomData["base"][region]}/${_dexcomData["endpoint"]["data"]}");
       _log("Fetching glucose readings from $url",
           function: "_getGlucoseReadings");
 
@@ -286,7 +337,10 @@ class Dexcom {
   // Takes care of variables and pre-flight checks
   void _init() {
     region ??= _getRegion();
-    _applicationId ??= _dexcomData["appId"][_getRegion()];
+    appIds ??= DexcomAppIds(
+        us: "d89443d2-327c-4a6f-89e5-496bbb0317db",
+        ous: "d89443d2-327c-4a6f-89e5-496bbb0317db",
+        jp: "d8665ade-9673-4e27-9ff6-92db4ce13d13");
 
     if (username == null) {
       throw Exception("Username cannot be null.");

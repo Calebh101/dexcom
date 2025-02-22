@@ -21,12 +21,33 @@ Very simple to use. Just create a Dexcom object with a username and password, th
 String username = "username";
 String password = "password";
 String region = "region";
-var dexcom = Dexcom(username, password, {region: region}); // region is set automatically if not manually set
+var dexcom = Dexcom({username: username, password: username, region: region, debug: bool, minutes: int, maxCount: int, appIds: DexcomAppIds});
 List<dynamic>? response;
+```
 
+First, let's go over the parameters:
+- username: username
+- password: password
+- region: region (set automatically if not set)
+- debug: shows extra logs
+- minutes: default for every function if not explicitly set
+- maxCount: default for every function if not explicitly set
+- appIds: DexcomAppIds
+
+What is DexcomAppIds?
+
+DexcomAppIds is an object that stores the application IDs needed to send requests. There's a US option, an out-of US (OUS) option, and a Japan (JP) option. US and OUS can sometimes be used interchangeably, so you only have to specify one if you don't want to specify both. The Japanese option is separately managed. If your program is used in a region that you have not set an application ID for, then your program will error and not work. Right now, I do have a default set of application IDs, but eventually that will go away.
+
+Example:
+
+```dart
+DexcomAppIds(us: "your-us-app-id", ous: "your-ous-app-id", jp: "your-jp-app-id");
+```
+
+```dart
 try {
     // getReadings can be optionally set to false (the default is true) if you just want to check the session success
-    await dexcom.verifyLogin(username, password, [optional: getReadings]);
+    await dexcom.verify();
     print("Verified account");
 } catch (e) {
     print("Unable to verify account: $e");
@@ -117,7 +138,7 @@ provider.listen(
     onData: (data) => print('Stream received: $data'),
     onError: (error) => print('Stream errored: $error'),
     onTimerChange: (time) print("Stream timer: $time"),
-    cancelOnError: false, // shut down when an error is received
+    cancelOnError: false, // True if the listener should shut down when an error is received.
 );
 ```
 

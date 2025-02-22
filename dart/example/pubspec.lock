@@ -84,7 +84,7 @@ packages:
   dexcom:
     dependency: "direct main"
     description:
-      path: "../.."
+      path: ".."
       relative: true
     source: path
     version: "0.1.10"

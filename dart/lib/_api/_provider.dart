@@ -1,3 +1,6 @@
+/// Library that provides the stream provider
+library provider;
+
 import 'dart:async';
 import 'package:dexcom/_api/_main.dart';
 
