@@ -49,7 +49,7 @@
 - Updated Important Information in README.md
 
 ### 0.1.10
-- Updated Dexcom() to not set username and password as finals, and add an optional region parameter
+- Updated Dexcom class to not set username and password as finals, and add an optional region parameter
 - Improved documentation
 - Updated dependencies
 
@@ -60,3 +60,4 @@
 - Other small (but potentially breaking) changes:
     - A lot of methods in the Dexcom class were made private
     - The constructor is now named ((parameter: value) instead of just (value))
+- A lot of other small-to-medium changes
