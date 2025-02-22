@@ -1,5 +1,4 @@
-/// Main library that controls all the http, sessions, and data processing
+/// Main library for dexcom.
 library dexcom;
 
-export '_api/_main.dart';
-export '_api/_provider.dart';
+export 'share.dart';
