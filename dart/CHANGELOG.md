@@ -54,8 +54,9 @@
 - Updated dependencies
 
 ## 0.2.0 - Breaking Changes
-- Now a new DexcomStreamProvider class, which makes it easy to listen to a Dexcom object
-- Included a Dart example with a Flutter example
+- New DexcomStreamProvider class, which makes it easy to listen to a Dexcom object
+- New DexcomAppIds class, which holds app IDs (not required, yet)
+- Example is now in Dart instead of Flutter
 - Other small (but potentially breaking) changes:
     - A lot of methods in the Dexcom class were made private
     - The constructor is now named ((parameter: value) instead of just (value))
