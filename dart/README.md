@@ -6,7 +6,7 @@ dexcom for Dart allows you to use Dexcom Share to get your Dexcom CGM data, or a
 
 WARNING: This package is in beta (signified by the version 0.x.x). Please use at your own risk.
 
-WARNING: This package fetches, processes, calculates, and outputs real-time blood glucose levels. DO NOT USE/ADVERTISE THIS FOR IMPORTANT MEDICAL TREATMENT DECISIONS.
+WARNING: This package fetches, processes, and outputs real-time blood glucose levels. DO NOT USE/ADVERTISE THIS FOR IMPORTANT MEDICAL TREATMENT DECISIONS.
 
 WE ARE NOT RESPONSIBLE FOR ANY MEDICAL INCIDENTS/EMERGENCIES CREATED/ELEVATED BECAUSE OF THIS PROGRAM OR ANY PROGRAMS USING IT. USE AT YOUR OWN RISK.
 
@@ -36,8 +36,7 @@ First, let's go over the parameters:
 
 What is DexcomAppIds?
 
-DexcomAppIds is an object that stores the application IDs needed to send requests. There's a US option, an out-of US (OUS) option, and a Japan (JP) option. US and OUS can sometimes be used interchangeably, so you only have to specify one if you don't want to specify both. The Japanese option is separately managed. If your program is used in a region that you have not set an application ID for, then your program will error and not work. Right now, I do have a default set of application IDs, but eventually that will go away.
-
+DexcomAppIds is an object that stores the application IDs needed to send requests. There's a US option, an out-of US (OUS) option, and a Japan (JP) option. US and OUS can sometimes be used interchangeably, so you only have to specify one if you don't want to specify both. The Japanese option is separately managed. If your program is used in a region that you have not set an application ID for, then your program will error and not work. There is a default set, in case you don't have your own. (Which is common since this uses an undocumented API.)
 Example:
 
 ```dart
