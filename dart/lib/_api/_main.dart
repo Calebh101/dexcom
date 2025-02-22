@@ -120,7 +120,7 @@ class Dexcom {
   /// Default maximum amount of glucose readings that can be fetched.
   int maxCount;
 
-  /// Application IDs to be used. You will be required to provide this in a later update.
+  /// Application IDs to be used. You will be required to provide this in a future update.
   DexcomAppIds? appIds;
 
   /// Makes a Dexcom with the username, password, and region (optional).
