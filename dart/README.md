@@ -32,17 +32,13 @@ While the Dexcom Share API can only fetch real-time blood glucose levels with no
 - Glucose values
 - Events
 
-The Dexcom Web API does, however, have a delay of 1 hour in the US and 3 hours outside of the US.
-
-Please note: this package officially supports the Dexcom Share API and the Dexcom Web API v3. We do not provide support for the Dexcom Web API v2. This package's readme only provides documentation on the Dexcom Share API usage, but I will create documentation for the Dexcom Web API and release it soon.
+Please note: this package officially supports the Dexcom Share API. We do not provide support for the Dexcom Web API.
 
 # Installing and Importing
 
-To install: `dart pub add dexcom` or `flutter pub add dexcom`
+- To install: `dart pub add dexcom` or `flutter pub add dexcom`
 
-To import:
-- For the Dexcom Share API: `import 'package:dexcom/share.dart';`
-- For the Dexcom Web API: `import 'package:dexcom/web.dart';`
+- To import: `import 'package:dexcom/share.dart';` 
 
 # Dexcom Share API Usage
 
@@ -50,7 +46,7 @@ To import:
 ```dart
 String username = "username";
 String password = "password";
-DexcomRegion region = "region"; // can be: DexcomRegion.us, DexcomRegion.ous, or DexcomRegion.jp
+DexcomRegion region = DexcomRegion.us; // can be: DexcomRegion.us, DexcomRegion.ous, or DexcomRegion.jp
 var dexcom = Dexcom({username: username, password: username, region: region, debug: bool, minutes: int, maxCount: int, appIds: DexcomAppIds});
 List<dynamic>? response;
 ```
