@@ -1,2 +1,3 @@
-A sample command-line application with an entrypoint in `bin/`, library code
-in `lib/`, and example unit test in `test/`.
+Example for the dexcom package. To run:
+
+`dart run bin/example.dart "username" "password"`

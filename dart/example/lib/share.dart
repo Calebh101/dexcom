@@ -1,4 +1,4 @@
-import 'package:dexcom/dexcom.dart';
+import 'package:dexcom/share.dart';
 
 void main({String username = "", String password = ""}) async {
   Dexcom dexcom = Dexcom(username: username, password: password, debug: false);

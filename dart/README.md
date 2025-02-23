@@ -6,7 +6,7 @@ dexcom for Dart allows you to use Dexcom Share to get your Dexcom CGM data, or a
 
 WARNING: This package is in beta (signified by the version 0.x.x). Please use at your own risk.
 
-WARNING: This package fetches, processes, and outputs real-time blood glucose levels. DO NOT USE/ADVERTISE THIS FOR IMPORTANT MEDICAL TREATMENT DECISIONS.
+WARNING: This package fetches, processes, and outputs real-time blood glucose levels and sensor information. DO NOT USE/ADVERTISE THIS FOR IMPORTANT MEDICAL TREATMENT DECISIONS.
 
 WE ARE NOT RESPONSIBLE FOR ANY MEDICAL INCIDENTS/EMERGENCIES CREATED/ELEVATED BECAUSE OF THIS PROGRAM OR ANY PROGRAMS USING IT. USE AT YOUR OWN RISK.
 
@@ -14,13 +14,39 @@ WE ARE NOT RESPONSIBLE FOR ANY MEDICAL INCIDENTS/EMERGENCIES CREATED/ELEVATED BE
 
 Very simple to use. Just create a Dexcom object with a username and password, then fetch the user's latest readings. The script takes care of all the account IDs, the session IDs, and the session creating automatically. The username can be email, username, or phone number.
 
-# Usage
+# The difference between the Dexcom Share API and the Dexcom Web API
+
+| Feature | Dexcom Share API | Dexcom Web API v3 |
+|-----------|-----------|-----------|
+| Features | Get real-time blood glucose levels | Get retrospective glucose and data |
+| Compatibility | Sensors: Dexcom G4+ | Sensors: Dexcom G6+ |
+| Documentation | Unofficially documented through [pydexcom](https://github.com/gagebenne/pydexcom) and my Dexcom project ([dexcom](https://github.com/Calebh101/dexcom)) | Officially documented on Dexcom's website
+| Authentication | Username and password are sent with https requests | Apps are authorized by the client using OAuth 2.0
+
+While the Dexcom Share API can only fetch real-time blood glucose levels with no way to control range and other things, the Dexcom Web API has a lot of (officially provided) features:
+
+- Alerts
+- Calibrations
+- Data ranges
+- Device information
+- Glucose values
+- Events
+
+Please note: this package officially supports the Dexcom Share API. We do not provide support for the Dexcom Web API.
+
+# Installing and Importing
+
+- To install: `dart pub add dexcom` or `flutter pub add dexcom`
+
+- To import: `import 'package:dexcom/share.dart';` 
+
+# Dexcom Share API Usage
 
 ## Verifying:
 ```dart
 String username = "username";
 String password = "password";
-String region = "region";
+DexcomRegion region = DexcomRegion.us; // can be: DexcomRegion.us, DexcomRegion.ous, or DexcomRegion.jp
 var dexcom = Dexcom({username: username, password: username, region: region, debug: bool, minutes: int, maxCount: int, appIds: DexcomAppIds});
 List<dynamic>? response;
 ```
@@ -153,6 +179,6 @@ This just sets the timer to 0.
 
 # Additional Information
 
-This package was based off of pydexcom for Python. I was able to port it to Flutter (version `0.0.0`), and then eventually Dart (version `0.1.2`).
+This package was based off of pydexcom for Python. I was able to port it to Flutter (version `0.0.0`), and then eventually Dart (version `0.1.2`). At release `0.2.0` I made a method to use the Dexcom Web API.
 
 For contact/support, email me at [calebh101dev@icloud.com](mailto:calebh101dev@icloud.com).
