@@ -1,6 +1,6 @@
 # About
 
-dexcom for Dart allows you to use Dexcom Share to get your Dexcom CGM data, or anybody else's, to run your application. Includes time (in milliseconds since Enoch), reading, and trend. Use only your email and password to have access to all your glucose data! The username can be an email, username, or phone.
+dexcom for Dart allows you to use the Dexcom Share API to get your Dexcom CGM data, or anybody else's, to run your application. Includes time (in milliseconds since Enoch), reading, and trend. Use only your email and password to have access to all your glucose data! The username can be an email, username, or phone.
 
 # Important Information
 
@@ -10,9 +10,27 @@ WARNING: This package fetches, processes, and outputs real-time blood glucose le
 
 WE ARE NOT RESPONSIBLE FOR ANY MEDICAL INCIDENTS/EMERGENCIES CREATED/ELEVATED BECAUSE OF THIS PROGRAM OR ANY PROGRAMS USING IT. USE AT YOUR OWN RISK.
 
-# Features
+# What is the Dexcom Web API?
 
-Very simple to use. Just create a Dexcom object with a username and password, then fetch the user's latest readings. The script takes care of all the account IDs, the session IDs, and the session creating automatically. The username can be email, username, or phone number.
+The Dexcom Web API is Dexcom's official API. It uses OAuth 2.0 among other things.
+
+| Feature | Dexcom Share API | Dexcom Web API v3 |
+|-----------|-----------|-----------|
+| Features | Get real-time blood glucose levels | Get retrospective glucose and data |
+| Compatibility | Sensors: Dexcom G4+ | Sensors: Dexcom G6+ |
+| Documentation | Unofficially documented through [pydexcom](https://github.com/gagebenne/pydexcom) and my Dexcom project ([dexcom](https://github.com/Calebh101/dexcom)) | Officially documented on Dexcom's website
+| Authentication | Username and password are sent with https requests | Apps are authorized by the client using OAuth 2.0
+
+While the Dexcom Share API can only fetch real-time blood glucose levels with no way to control range and other things, the Dexcom Web API has a lot of (officially provided) features:
+
+- Alerts
+- Calibrations
+- Data ranges
+- Device information
+- Glucose values
+- Events
+
+This package documents and supports the Dexcom Share API, not the Web API.
 
 # Usage
 
@@ -26,7 +44,7 @@ List<dynamic>? response;
 ```
 
 First, let's go over the parameters:
-- username: username
+- username: username (email, password, or phone number)
 - password: password
 - region: region (set automatically if not set)
 - debug: shows extra logs
@@ -86,27 +104,50 @@ else {
 ```
 
 This actually retrieves the glucose readings from the user. If it fails, it automatically tries to recreate the session. This is sample data (actually taken from a real reading):
+
 ```json
 [
   {
     "WT": "2022-11-22T17:29:54.000Z", 
-    "ST": "2022-11-22T17:29:54.000Z", 
-    "DT": "2022-11-22T11:29:54.000-06:00", 
+    "ST": "2022-11-22T17:29:54.000Z",      // system time
+    "DT": "2022-11-22T11:29:54.000-06:00", // display time
     "Value": 162, 
-    "Trend": "FortyFiveUp", 
-    "TimeSince": 21145 // Milliseconds from when the reading was taken til now. This would be 21 seconds.
+    "Trend": "FortyFiveUp"
   },
   {
     "WT": "2022-11-22T17:24:54.000Z", 
-    "ST": "2022-11-22T17:24:54.000Z", 
+    "ST": "2022-11-22T17:24:54.000Z",
     "DT": "2022-11-22T11:24:54.000-06:00", 
     "Value": 159, 
-    "Trend": "FortyFiveUp", 
-    "TimeSince": 321145 // This would be 321 seconds (around 5.5 minutes).
+    "Trend": "FortyFiveUp"
   }
 ]
 ```
-As you can see, it's an array of 2 items, because that's how many I wanted the program to get. The top one (item 0) is the most recent. The WT and ST both tell you when the value was taken. DT, I don't even know. Value is the actual glucose value taken. The trend is the arrow direction. The trend can be:
+
+This is how the package will return it:
+
+```dart
+[
+    DexcomReading(
+        systemTime: DateTime(2022-11-22T17:29:54.000Z),
+        displayTime: DateTime(2022-11-22T17:29:54.000Z),
+        value: 162,
+        trend: DexcomTrend.fortyFiveUp,
+    ),
+    DexcomReading(
+        systemTime: DateTime(2022-11-22T17:29:54.000Z),
+        displayTime: DateTime(2022-11-22T17:29:54.000Z),
+        value: 159,
+        trend: DexcomTrend.fortyFiveUp,
+    ),
+]
+```
+
+As you can see, it's an array of 2 items, because that's how many I wanted the program to get. The top one (item 0) is the most recent. From the [Dexcom Web API documentation](https://developer.dexcom.com/docs/dexcomv3/endpoint-overview/#time):
+
+> "systemTime is the UTC time according to the device, whereas displayTime is the time being shown on the device to the user. Depending on the device, this time may be user-configurable, and can therefore change its offset relative to systemTime. Note that systemTime is not 'true' UTC time because of drift and/or user manipulation of the devices' clock." 
+
+Value is the actual glucose value taken. The trend is the arrow direction. The trend can be:
 - Flat: steady
 - FortyFiveDown: slowly falling (-1/minute)
 - FortyFiveUp: slowly rising (+1/minute)
@@ -117,6 +158,8 @@ As you can see, it's an array of 2 items, because that's how many I wanted the p
 - None: no trend
 - NonComputable: the graph is too wonky for Dexcom to know which way the glucose levels are going. You might be able to try to compute it yourself if you wanted to.
 - RateOutOfRange: the bloodsugar is rising or falling too fast to be computable. This typically happens during sensor errors, where the bloodsugar will randomly drop 50 or more before when the sensor malfunctions.
+
+The program will return DexcomTrend.flat, DexcomTrend.fortyFiveDown, etc. You can convert it to a string with `trend.convert()`.
 
 ## Listening:
 

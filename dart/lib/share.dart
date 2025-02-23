@@ -7,38 +7,41 @@ import 'dart:convert'; // Convert JSON into URL body
 import 'package:http/http.dart'
     as http; // Fetch account ID, session ID, and user data
 import 'package:intl/intl.dart'; // Get region
+import 'package:dexcom/_api/all.dart';
 
-// Gets the current locale using
-String _getRegion() {
-  String region = "us";
+export '_api/all.dart';
+
+// Gets the current locale using Intl.
+DexcomRegion _getRegion() {
   String locale = Intl.getCurrentLocale();
   List<String> localeParts = locale.split('_');
   String countryCode = localeParts.length > 1 ? localeParts[1] : 'OUS';
 
   if (countryCode == 'US') {
-    region = 'us';
+    return DexcomRegion.us;
   } else if (countryCode == 'JP') {
-    region = 'jp';
+    return DexcomRegion.jp;
   } else {
-    region = 'ous';
+    return DexcomRegion.ous;
   }
-
-  return region;
 }
 
-// Lists all the application IDs, base URLs, and endpoints for the requests
+// Lists all the endpoints for the requests
 Map _dexcomData = {
-  "base": {
-    "us": "https://share2.dexcom.com/ShareWebServices/Services",
-    "ous": "https://shareous1.dexcom.com/ShareWebServices/Services",
-    "jp": "https://share.dexcom.jp/ShareWebServices/Services"
-  },
   "endpoint": {
     "session": "General/LoginPublisherAccountById",
     "account": "General/AuthenticatePublisherAccount",
     "data": "Publisher/ReadPublisherLatestGlucoseValues"
   }
 };
+
+String _getBaseUrl(DexcomRegion region) {
+  switch (region) {
+    case DexcomRegion.us: return "https://share2.dexcom.com/ShareWebServices/Services";
+    case DexcomRegion.ous: return "https://shareous1.dexcom.com/ShareWebServices/Services";
+    case DexcomRegion.jp: return "https://share.dexcom.jp/ShareWebServices/Services";
+  }
+}
 
 /// Class for managing and retrieving app IDs.
 class DexcomAppIds {
@@ -68,37 +71,40 @@ class DexcomAppIds {
   }
 
   /// Get the requested app ID.
-  String get({String? code}) {
+  String get({DexcomRegion? code}) {
     code ??= _getRegion();
     switch (code) {
-      case 'us':
+      case DexcomRegion.us:
         if (us != null) {
           return us!;
         } else {
           throw Exception("A US app ID was not provided.");
         }
-      case 'ous':
+      case DexcomRegion.ous:
         if (ous != null) {
           return ous!;
         } else {
           throw Exception("An out-of-US app ID was not provided.");
         }
-      case 'jp':
+      case DexcomRegion.jp:
         if (jp != null) {
           return jp!;
         } else {
           throw Exception("A Japanese app ID was not provided.");
         }
-      default:
-        throw Exception("Invalid region code: $code.");
     }
+  }
+
+  @override
+  String toString() {
+    return "DexcomAppIds(us: ${us != null}, ous: ${ous != null}, jp: ${jp != null})";
   }
 }
 
 /// Main class that controls all of the functions.
 class Dexcom {
   /// Region used to decide which server and app ID to use.
-  String? region;
+  DexcomRegion? region;
 
   /// Username used to login to the Dexcom Share API; can be email, username, or phone number.
   String? username;
@@ -151,25 +157,46 @@ class Dexcom {
     return uuid.replaceAll('"', '');
   }
 
-  // Processes each reading
-  List<Map<String, dynamic>> _process(List<Map<String, dynamic>> data) {
+  DexcomTrend _getTrend(String trend) {
+    switch (trend) {
+      case "Flat":
+        return DexcomTrend.flat;
+      case "FortyFiveDown":
+        return DexcomTrend.fortyFiveDown;
+      case "FortyFiveUp":
+        return DexcomTrend.fortyFiveUp;
+      case "SingleDown":
+        return DexcomTrend.singleDown;
+      case "SingleUp":
+        return DexcomTrend.singleUp;
+      case "DoubleDown":
+        return DexcomTrend.doubleDown;
+      case "DoubleUp":
+        return DexcomTrend.doubleUp;
+      case "NonComputable":
+        return DexcomTrend.nonComputable;
+      case "None":
+        return DexcomTrend.none;
+      default:
+        throw ArgumentError("Invalid trend: $trend");
+    }
+  }
+
+  // Processes each reading and turns them into [DexcomReading]s
+  List<DexcomReading> _process(List<Map<String, dynamic>> data) {
+    List<DexcomReading> items = [];
     data.forEach((item) {
-      item["TimeSince"] = DateTime.now()
-          .difference(DateTime.fromMillisecondsSinceEpoch(int.parse(
-              RegExp(r"Date\((\d+)-\d+\)").firstMatch(item["DT"])!.group(1)!)))
-          .inMilliseconds; // Adds a "TimeSince" field with the milliseconds from when the reading was taken to now
+      DexcomReading reading = DexcomReading(systemTime: DateTime.parse(item["ST"]), displayTime: DateTime.parse(item["DT"]), value: item["Value"], trend: _getTrend(item["Trend"]));
+      items.add(reading);
     });
-    return data;
+    return items;
   }
 
   Future<String> _getAccountId() async {
+    _init();
     try {
-      if (!_dexcomData["base"].containsKey(region)) {
-        throw Exception('Invalid region: $region');
-      }
-
       final url = Uri.parse(
-          "${_dexcomData["base"][region]}/${_dexcomData["endpoint"]["account"]}");
+          "${_getBaseUrl(region!)}/${_dexcomData["endpoint"]["account"]}");
       _log("Fetching account ID from $url", function: "_getAccountId");
 
       final response = await http.post(
@@ -196,7 +223,7 @@ class Dexcom {
   Future<String> _getSessionId() async {
     try {
       final url = Uri.parse(
-          "${_dexcomData["base"][region]}/${_dexcomData["endpoint"]["session"]}");
+          "${_getBaseUrl(region!)}/${_dexcomData["endpoint"]["session"]}");
       _log("Fetching session ID from $url", function: "_getSessionId");
 
       final response = await http.post(
@@ -237,14 +264,14 @@ class Dexcom {
     }
   }
 
-  Future<List<Map<String, dynamic>>> _getGlucoseReadings(
+  Future<List<DexcomReading>> _getGlucoseReadings(
       {int? minutes, int? maxCount}) async {
     minutes ??= this.minutes;
     maxCount ??= this.maxCount;
 
     try {
       final url = Uri.parse(
-          "${_dexcomData["base"][region]}/${_dexcomData["endpoint"]["data"]}");
+          "${_getBaseUrl(region!)}/${_dexcomData["endpoint"]["data"]}");
       _log("Fetching glucose readings from $url",
           function: "_getGlucoseReadings");
 
@@ -271,7 +298,7 @@ class Dexcom {
   }
 
   /// Gets glucose readings using minutes and maxCount.
-  Future<List<Map<String, dynamic>>?> getGlucoseReadings(
+  Future<List<DexcomReading>?> getGlucoseReadings(
       {int? minutes, int? maxCount, bool allowRetrySession = true}) async {
     _init();
     minutes ??= this.minutes;
@@ -309,7 +336,7 @@ class Dexcom {
   }
 
   /// Verifies that the user has the correct username and password by creating a session and optionally getting the data to confirm that the user used valid credentials.
-  @Deprecated("Use verify instead. This function was deprecated as of 0.2.0.")
+  @Deprecated("Use verify instead. This function was deprecated as of 1.0.0.")
   Future<Map<String, dynamic>> verifyLogin(String username, String password,
       {bool getReadings = true, int? minutes}) async {
     _init();

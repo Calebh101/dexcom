@@ -1,4 +1,4 @@
-# Beta
+# Version 0 - Beta
 
 ## 0.0.0
 - Initial release
@@ -53,11 +53,14 @@
 - Improved documentation
 - Updated dependencies
 
-## 0.2.0 - Breaking Changes
+# Version 1 - Release
+
+## 1.0.0 - Breaking Changes
 - New DexcomStreamProvider class, which makes it easy to listen to a Dexcom object
 - New DexcomAppIds class, which holds app IDs
 - Example is now in Dart instead of Flutter
 - Other small (but potentially breaking) changes:
     - A lot of methods in the Dexcom class were made private
     - The constructor is now named ((parameter: value) instead of just (value))
+    - 'verifyLogin' is now 'verify'
 - A lot of other small-to-medium changes
