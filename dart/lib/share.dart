@@ -185,10 +185,16 @@ class Dexcom {
   // Processes each reading and turns them into [DexcomReading]s
   List<DexcomReading> _process(List<Map<String, dynamic>> data) {
     List<DexcomReading> items = [];
+
+    DateTime formatTime(String time) {
+      return DateTime.fromMillisecondsSinceEpoch(int.parse((RegExp(r"Date\((.*)\)").firstMatch(time)!.group(1)!).split('-')[0]));
+    }
+
     data.forEach((item) {
-      DexcomReading reading = DexcomReading(systemTime: DateTime.parse(item["ST"]), displayTime: DateTime.parse(item["DT"]), value: item["Value"], trend: _getTrend(item["Trend"]));
+      DexcomReading reading = DexcomReading(systemTime: formatTime(item["ST"]), displayTime: formatTime(item["DT"]), value: item["Value"], trend: _getTrend(item["Trend"]));
       items.add(reading);
     });
+
     return items;
   }
 
