@@ -1,14 +1,22 @@
-import 'package:example/example.dart' as example;
+import 'package:example/share.dart' as share;
+import 'package:example/web.dart' as web;
+
+enum DexcomAPI {
+  share,
+  web,
+}
 
 void main(
   List<String> arguments, {
-  String username = "",
-  String password = "",
+  DexcomAPI type = DexcomAPI.share,
 }) {
-  if (arguments.length >= 2) {
-    username = arguments[0];
-    password = arguments[1];
+  if (arguments.contains("--web")) {
+    type = DexcomAPI.web;
   }
 
-  example.main(username: username, password: password);
+  if (type == DexcomAPI.share) {
+    share.main(username: arguments[0], password: arguments[1]);
+  } else {
+    web.main(clientId: arguments[0], clientSecret: arguments[1], redirectUri: arguments[3], token: arguments[2]);
+  }
 }

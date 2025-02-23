@@ -13,6 +13,7 @@ Dexcom is a CGM company. They produce CGMs, or continuous glucose monitors. Thes
 The Dexcom Share API uses a URL to get your account ID, set up a session, then retrieve your glucose values. This makes it worlds easier to get your readings, as normally, you would have to set up a developer account, make an app, use OAuth2 to authorize said app (which requires a website), and then constantly use a refresh token to get new data. This is very tedious to do. So, this Dexcom Share API uses a direct URL to get your glucose data.
 
 # How it Works
+
 ## Overview
 
 There is no documentation on this that I could find, so I'm going to make my own.
@@ -133,10 +134,10 @@ As you can see, it's an array of 2 items, because that's how many I wanted the p
 - DoubleDown: quickly falling (-3/minute)
 - DoubleUp: quickly rising (+3/minute)
 - None: no trend
-- NonComputable: the graph is too wonky for Dexcom to know which way the glucose levels are going. You might be able to try to compute this yourself if you wanted to.
+- NonComputable: The graph is too wonky for Dexcom to know which way the glucose levels are going. You might be able to try to compute this yourself if you wanted to.
 - RateOutOfRange: the bloodsugar is rising or falling too fast to be computable. This typically happens during sensor errors, where the bloodsugar will randomly drop 50 or more before the sensor goes out.
 
-So, now you are ready to start using the Dexcom API in your app! I created [dexcom](https://pub.dev/packages/dexcom), a package for Dart, and there's [pydexcom](https://github.com/gagebenne/pydexcom) for Python.
+So, now you are ready to start using the Dexcom Share API in your app! I created [dexcom](https://pub.dev/packages/dexcom), a package for Dart, and there's [pydexcom](https://github.com/gagebenne/pydexcom) for Python.
 
 ## Diagram of the Process
 
