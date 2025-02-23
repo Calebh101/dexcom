@@ -466,8 +466,8 @@ class DexcomStreamProvider {
 
           try {
             _log("Getting glucose data", function: "listen.Timer");
-            List data = (await object.getGlucoseReadings(maxCount: maxCount))!;
-            time = (data[0]["TimeSince"] / 1000).toInt();
+            List<DexcomReading> data = (await object.getGlucoseReadings(maxCount: maxCount))!;
+            time = DateTime.now().difference(data[0].displayTime).inSeconds;
 
             if (time! >= _interval) {
               time = 0;
