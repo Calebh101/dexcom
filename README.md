@@ -12,7 +12,44 @@ Dexcom is a CGM company. They produce CGMs, or continuous glucose monitors. Thes
 
 The Dexcom Share API uses a URL to get your account ID, set up a session, then retrieve your glucose values. This makes it worlds easier to get your readings, as normally, you would have to set up a developer account, make an app, use OAuth2 to authorize said app (which requires a website), and then constantly use a refresh token to get new data. This is very tedious to do. So, this Dexcom Share API uses a direct URL to get your glucose data.
 
+## What is the Dexcom Web API, and how is it different from the Dexcom Share API?
+
+### Summary
+
+The Dexcom Web API is Dexcom's official API. It uses OAuth 2.0. among other means of authentication. It can get a lot more than just current glucose levels.
+
+The Dexcom Share API is an unofficial API found by the community that only requires a simple Dexcom username and password. It's designed to only fetch the latest glucose data.
+
+### Comparison
+
+| Feature | Dexcom Share API | Dexcom Web API v3 |
+|-----------|-----------|-----------|
+| Features | Get real-time blood glucose levels | Get retrospective glucose and data |
+| Compatibility | Sensors: Dexcom G4+ | Sensors: Dexcom G6+ |
+| Documentation | Unofficially documented through [pydexcom](https://github.com/gagebenne/pydexcom) and my Dexcom project ([dexcom](https://github.com/Calebh101/dexcom)) | Officially documented on Dexcom's website
+| Authentication | Username and password are sent with https requests | Apps are authorized by the client using OAuth 2.0
+
+While the Dexcom Share API can only fetch real-time blood glucose levels with no way to control range and other things, the Dexcom Web API has a lot of (officially provided) features:
+
+- Alerts
+- Calibrations
+- Data ranges
+- Device information
+- Glucose values
+- Events
+
+### Which one should I use?
+
+- If you don't want to go through Dexcom's app verification process (such as submitting your app to Dexcom for them to let you publish it): **use the Dexcom Share API**.
+- If you want an officially documented and supported API: **use the Dexcom Web API**.
+- If you want literally anything more than just the latest glucose data: **use the Dexcom Web API**.
+- If you're using this for a personal use case: **use the Dexcom Share API**.
+- If you want glucose data from more than 24 hours in the past: **use the Dexcom Web API**.
+- If you want to specify a time range for the glucose data: **use the Dexcom Web API**.
+- Anything else: If you're publishing your app, I would generally recommend to **use the Dexcom Web API**, as it is officially supported and documented by Dexcom.
+
 # How it Works
+
 ## Overview
 
 There is no documentation on this that I could find, so I'm going to make my own.
