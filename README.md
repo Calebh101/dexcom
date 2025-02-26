@@ -92,8 +92,17 @@ And send this as the body:
 {
     "accountName": "username",
     "password": "password",
-    "applicationId": "appId", // based on the region, see the data above in the appId section
+    "applicationId": "appId",
 }
+```
+
+Your response will be a UUID in plaintext. For some reason, the API does return the UUID with surrounding quotes, so you'll need to parse those out.
+
+For example, if you got a response of: `e3dd1bc3-9a6b-48c9-a743-8e9001e54a76`
+
+Your code would be:
+```javascript
+const accountId = (await refresh.text() /* or however you get the body */).replaceAll("\"", "");
 ```
 
 Great, now you should have an account ID! This is just step one of the process. Sigh...
@@ -102,7 +111,7 @@ Great, now you should have an account ID! This is just step one of the process. 
 
 Next, you need a session ID. This is temporary, so you will need to remake this every once in a while. I'll tell you how to do that efficiently in the next section.
 
-In order to get a session ID, you need to send a username, a password, and an application id to the server. Depending on where the user is (in the US, out of the US, or Japan), you will send the request to one of these URLs:
+In order to get a session ID, you need to send a username, a password again, and the application ID to the server, again. Depending on where the user is (in the US, out of the US, or Japan), you will send the request to one of these URLs:
 
 - US: https://share2.dexcom.com/ShareWebServices/Services/General/LoginPublisherAccountById
 - Out of US: https://shareous1.dexcom.com/ShareWebServices/Services/General/LoginPublisherAccountById
@@ -118,6 +127,8 @@ And send this as the body:
     "applicationId": "appId", // based on the region, see the data above in the `appId` section
 }
 ```
+
+It is returned in the exact same way as stated in the account ID section.
 
 Now you have a session ID! We can use the session ID to get their glucose data.
 
