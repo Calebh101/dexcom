@@ -102,7 +102,7 @@ For example, if you got a response of: `e3dd1bc3-9a6b-48c9-a743-8e9001e54a76`
 
 Your code would be:
 ```javascript
-const accountId = (await refresh.text() /* or however you get the body */).replaceAll("\"", "");
+const accountId = (await response.text() /* or however you get the body */).replaceAll("\"", "");
 ```
 
 Great, now you should have an account ID! This is just step one of the process. Sigh...
