@@ -16,7 +16,7 @@ The Dexcom Share API uses a URL to get your account ID, set up a session, then r
 
 ### Summary
 
-The Dexcom Web API is Dexcom's official API. It uses OAuth 2.0. among other means of authentication. It can get a lot more than just current glucose levels.
+The Dexcom Web API is Dexcom's official API. It uses OAuth 2.0. among other means of authentication.
 
 The Dexcom Share API is an unofficial API found by the community that only requires a simple Dexcom username and password. It's designed to only fetch the latest glucose data.
 
@@ -25,9 +25,10 @@ The Dexcom Share API is an unofficial API found by the community that only requi
 | Feature | Dexcom Share API | Dexcom Web API v3 |
 |-----------|-----------|-----------|
 | Features | Get real-time blood glucose levels | Get retrospective glucose and data |
+| Timing | No delay | 1 to 3 hour delay
 | Compatibility | Sensors: Dexcom G4+ | Sensors: Dexcom G6+ |
 | Documentation | Unofficially documented through [pydexcom](https://github.com/gagebenne/pydexcom) and my Dexcom project ([dexcom](https://github.com/Calebh101/dexcom)) | Officially documented on Dexcom's website
-| Authentication | Username and password are sent with https requests | Apps are authorized by the client using OAuth 2.0
+| Authentication | Username and password are used to get a session | Apps are authorized by the client using OAuth 2.0
 
 While the Dexcom Share API can only fetch real-time blood glucose levels with no way to control range and other things, the Dexcom Web API has a lot of (officially provided) features:
 
@@ -37,6 +38,8 @@ While the Dexcom Share API can only fetch real-time blood glucose levels with no
 - Device information
 - Glucose values
 - Events
+
+However, keep in mind: **the Dexcom Web API has a one hour delay in the US and a three hour delay outside of the US**. This is due to FDA stuff with Dexcom. So you may have to mix the two in your app.
 
 ### Which one should I use?
 
@@ -89,7 +92,7 @@ And send this as the body:
 {
     "accountName": "username",
     "password": "password",
-    "applicationId': "appId", // based on the region, see the data above in the `appId` section
+    "applicationId": "appId", // based on the region, see the data above in the appId section
 }
 ```
 
