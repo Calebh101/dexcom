@@ -1,6 +1,6 @@
 # About
 
-Version: 0.0.0A
+Version: 1.0.0B
 
 ## What is this repository?
 
@@ -98,12 +98,14 @@ And send this as the body:
 
 Your response will be a UUID in plaintext. For some reason, the API does return the UUID with surrounding quotes, so you'll need to parse those out.
 
-For example, if you got a response of: `e3dd1bc3-9a6b-48c9-a743-8e9001e54a76`
+For example: you got a response: `"8597cbce-1c66-4655-bf7d-a7e070638b80"`
 
 Your code would be:
 ```javascript
 const accountId = (await response.text() /* or however you get the body */).replaceAll("\"", "");
 ```
+
+And your result will be: `8597cbce-1c66-4655-bf7d-a7e070638b80`.
 
 Great, now you should have an account ID! This is just step one of the process. Sigh...
 
@@ -189,7 +191,15 @@ As you can see, it's an array of 2 items, because that's how many I wanted the p
 
 So, now you are ready to start using the Dexcom API in your app! I created [dexcom](https://pub.dev/packages/dexcom), a package for Dart, and there's [pydexcom](https://github.com/gagebenne/pydexcom) for Python.
 
-## Diagram of the Process
+# Handling errors
+
+In a production environment, you will encounter HTTP errors while making requests.
+
+- While getting account ID: If you have a non-200 status code, then the account credentials are most likely incorrect.
+- While getting session ID: If you have a non-200 status code, then you should look into your code.
+- While getting glucose values: If you have a non-200 status code, then the session is expired, and you should re-fetch the session ID.
+
+# Diagram of the Process
 
 ```mermaid
 graph TD;
@@ -228,6 +238,9 @@ graph TD;
 
 # Changelog
 
-## 0.0.0A
+## 1.0.0A
 
 - Needed to add versioning for this so I am listing the first version quite a bit after I started the project
+
+## 1.0.0B
+- Improved documentation
