@@ -88,7 +88,7 @@ First, you need to get the account ID. This is really simple, as you just need t
 Then, send these as the headers: `{"Content-Type": "application/json"}`
 
 And send this as the body:
-```json
+```dart
 {
     "accountName": "username",
     "password": "password",
