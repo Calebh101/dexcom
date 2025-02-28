@@ -48,7 +48,7 @@
 - Completely rewrote example as a fully functional Flutter app with detailed examples and processes
 - Updated Important Information in README.md
 
-### 0.1.10
+### 1.0.0
 - Updated Dexcom class to not set username and password as finals, and add an optional region parameter
 - Improved documentation
 - Updated dependencies
