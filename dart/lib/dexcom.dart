@@ -101,6 +101,38 @@ class DexcomAppIds {
   }
 }
 
+/// Thrown when an error occurs during Dexcom authentication.
+class DexcomAuthorizationException implements Exception {
+  /// Message of the exception.
+  final String? message;
+
+  /// Message is optional.
+  DexcomAuthorizationException([this.message]);
+
+  /// Converts the exception to a string.
+  /// Called when thrown.
+  @override
+  String toString() {
+    return "DexcomAuthorizationException${message != null ? ": $message" : ""}";
+  }
+}
+
+/// Thrown when an error occurs during Dexcom glucose retrieval.
+class DexcomGlucoseRetrievalException implements Exception {
+  /// Message of the exception.
+  final String? message;
+
+  /// Message is optional.
+  DexcomGlucoseRetrievalException([this.message]);
+
+  /// Converts the exception to a string.
+  /// Called when thrown.
+  @override
+  String toString() {
+    return "DexcomGlucoseRetrievalException${message != null ? ": $message" : ""}";
+  }
+}
+
 /// Main class that controls all of the functions.
 class Dexcom {
   /// Region used to decide which server and app ID to use.
@@ -223,8 +255,7 @@ class Dexcom {
       if (response.statusCode == 200) {
         return _formatUuid(response.body);
       } else {
-        throw Exception(
-            'Failed to authenticate: Could not retrieve Account ID: ${response.body}');
+        throw DexcomAuthorizationException('Could not retrieve Account ID');
       }
     } catch (e) {
       rethrow;
@@ -250,8 +281,7 @@ class Dexcom {
         String responseS = _formatUuid(response.body);
         return responseS;
       } else {
-        throw Exception(
-            'Failed to authenticate: Could not retrieve Session ID: ${response.body}');
+        throw DexcomAuthorizationException('Could not retrieve Session ID');
       }
     } catch (e) {
       rethrow;
@@ -268,7 +298,8 @@ class Dexcom {
         _sessionId ??= await _getSessionId();
         _log("Retrieved session ID", function: "_createSession");
       } else {
-        throw Exception("_accountId was null");
+        throw DexcomAuthorizationException(
+            "Could not retrieve Account ID: Account ID returned null.");
       }
     } catch (e) {
       rethrow;
@@ -300,7 +331,7 @@ class Dexcom {
         return _process(
             List<Map<String, dynamic>>.from(jsonDecode(response.body)));
       } else {
-        throw Exception(
+        throw DexcomGlucoseRetrievalException(
             "Unable to fetch readings: Status code ${response.statusCode}");
       }
     } catch (e) {
@@ -321,7 +352,7 @@ class Dexcom {
             await _getGlucoseReadings(minutes: minutes, maxCount: maxCount);
         return readings;
       } catch (e) {
-        throw Exception('Failed to fetch glucose readings: $e');
+        rethrow;
       }
     }
 

@@ -64,3 +64,7 @@
     - The constructor is now named ((parameter: value) instead of just (value))
     - 'verifyLogin' is now 'verify'
 - A lot of other small-to-medium changes
+
+### 1.0.1
+- New errors: DexcomAuthorizationException and DexcomGlucoseRetrievalException. They are called on authorization failure and glucose retrieval failure.
+- Improved documentation

@@ -4,13 +4,11 @@ dexcom for Dart allows you to use the Dexcom Share API to get your Dexcom CGM da
 
 # Important Information
 
-WARNING: This package fetches, processes, and outputs real-time blood glucose levels. DO NOT USE/ADVERTISE THIS FOR IMPORTANT MEDICAL TREATMENT DECISIONS.
-
-WE ARE NOT RESPONSIBLE FOR ANY MEDICAL INCIDENTS/EMERGENCIES CREATED/ELEVATED BECAUSE OF THIS PROGRAM OR ANY PROGRAMS USING IT. USE AT YOUR OWN RISK, OR AT THE RISK OF ANY CLIENTS USING THIS APP.
+WARNING: This package fetches, processes, and outputs real-time blood glucose levels. DO NOT USE/ADVERTISE THIS FOR IMPORTANT MEDICAL TREATMENT DECISIONS. WE ARE NOT RESPONSIBLE FOR ANY MEDICAL INCIDENTS/EMERGENCIES CREATED/ELEVATED BECAUSE OF THIS PROGRAM OR ANY PROGRAMS USING IT. USE AT YOUR OWN RISK, OR AT THE RISK OF ANY CLIENTS USING THIS APP.
 
 # What is the Dexcom Web API?
 
-The Dexcom Web API is Dexcom's official API. It uses OAuth 2.0 among other things.
+The Dexcom Web API is Dexcom's official API. It uses OAuth 2.0 among other things. The Dexcom Share API is an unofficial, undocumented method of retrieving glucose. It's extremely helpful for hobbyists who want a way to display their bloodsugar how and where they want it. It's also good for apps that need instant access to glucose data.
 
 | Feature | Dexcom Share API | Dexcom Web API v3 |
 |-----------|-----------|-----------|
@@ -27,6 +25,8 @@ While the Dexcom Share API can only fetch real-time blood glucose levels with no
 - Device information
 - Glucose values
 - Events
+
+The one downside to the Web API: it has a data delay of one to three hours, which is not preferable for 99% of apps.
 
 This package documents and supports the Dexcom Share API, not the Web API.
 
