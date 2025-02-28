@@ -4,11 +4,9 @@ dexcom for Dart allows you to use the Dexcom Share API to get your Dexcom CGM da
 
 # Important Information
 
-WARNING: This package is in beta (signified by the version 0.x.x). Please use at your own risk.
-
 WARNING: This package fetches, processes, and outputs real-time blood glucose levels. DO NOT USE/ADVERTISE THIS FOR IMPORTANT MEDICAL TREATMENT DECISIONS.
 
-WE ARE NOT RESPONSIBLE FOR ANY MEDICAL INCIDENTS/EMERGENCIES CREATED/ELEVATED BECAUSE OF THIS PROGRAM OR ANY PROGRAMS USING IT. USE AT YOUR OWN RISK.
+WE ARE NOT RESPONSIBLE FOR ANY MEDICAL INCIDENTS/EMERGENCIES CREATED/ELEVATED BECAUSE OF THIS PROGRAM OR ANY PROGRAMS USING IT. USE AT YOUR OWN RISK, OR AT THE RISK OF ANY CLIENTS USING THIS APP.
 
 # What is the Dexcom Web API?
 
