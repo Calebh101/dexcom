@@ -26,7 +26,7 @@ While the Dexcom Share API can only fetch real-time blood glucose levels with no
 - Glucose values
 - Events
 
-The one downside to the Web API: it has a data delay of one to three hours, which is not preferable for 99% of apps.
+The main downside to the Web API, along with other things: **it has a data delay of one to three hours, which is not preferable for 99% of apps**.
 
 This package documents and supports the Dexcom Share API, not the Web API.
 
