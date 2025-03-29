@@ -176,7 +176,7 @@ Your response will look like this:
     }
 ]
 ```
-As you can see, it's an array of 2 items, because that's how many I wanted the program to get. The top one (item 0) is the most recent. The WT and ST both tell you when the value was taken in UTC. DT tell you when the value was taken in the local time zone (which, in this example, is EST). WT, ST, and DT are recorded as milliseconds since Unix Enoch. Value is the actual glucose value taken. The trend is the arrow direction. The trend can be:
+As you can see, it's an array of 2 items, because that's how many I wanted the program to get. The top one (item 0) is the most recent. The WT and ST both tell you when the value was taken in UTC. DT tell you when the value was taken in the local time zone (which, in this example, is EST). WT, ST, and DT are recorded as milliseconds since Unix epoch. Value is the actual glucose value taken. The trend is the arrow direction. The trend can be:
 
 - Flat: steady
 - FortyFiveDown: slowly falling (-1/minute)
