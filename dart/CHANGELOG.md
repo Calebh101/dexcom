@@ -48,7 +48,7 @@
 - Completely rewrote example as a fully functional Flutter app with detailed examples and processes
 - Updated Important Information in README.md
 
-### 1.0.0
+### 0.1.10
 - Updated Dexcom class to not set username and password as finals, and add an optional region parameter
 - Improved documentation
 - Updated dependencies
@@ -61,7 +61,7 @@
 - Example is now in Dart instead of Flutter
 - Other small (but potentially breaking) changes:
     - A lot of methods in the Dexcom class were made private
-    - The constructor is now named ((parameter: value) instead of just (value))
+    - The constructor now uses named parameters ((parameter: value) instead of just (value))
     - 'verifyLogin' is now 'verify'
 - A lot of other small-to-medium changes
 
