@@ -354,6 +354,8 @@ class Dexcom {
   }
 
   /// Gets glucose readings using minutes and maxCount.
+  /// 
+  /// The latest reading is the first
   Future<List<DexcomReading>?> getGlucoseReadings(
       {int? minutes, int? maxCount, bool allowRetrySession = true}) async {
     _init();
@@ -493,6 +495,8 @@ class DexcomStreamProvider {
   }
 
   /// Start listening to incoming Dexcom readings.
+  /// 
+  /// [onData] outputs data with the latest reading being the first.
   void listen(
       {void Function(List<DexcomReading> data)? onData,
       void Function(Error error)? onError,
