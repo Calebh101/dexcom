@@ -73,3 +73,6 @@
 - `verify()` now returns a `DexcomVerificationResult` instead of a `Map`
 - Improved typing
 - Improved documentation
+
+### 1.0.3 - 7/29/25
+- Fixed a couple bugs

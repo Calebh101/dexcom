@@ -499,7 +499,7 @@ class DexcomStreamProvider {
   /// [onData] outputs data with the latest reading being the first.
   void listen(
       {void Function(List<DexcomReading> data)? onData,
-      void Function(Error error)? onError,
+      void Function(Object error)? onError,
       void Function(int time)? onTimerChange,
       bool cancelOnError = false}) async {
     if (_isListening == true) {
@@ -535,10 +535,10 @@ class DexcomStreamProvider {
             }
 
             _controller!.add(data);
-            (onData ?? () {})(data);
+            (onData ?? (dynamic data) {})(data);
           } catch (e) {
             _controller!.addError(e);
-            (onError ?? () {})(e);
+            (onError ?? (dynamic e) {})(e);
             print("DexcomStreamProvider listen error: $e");
 
             if (cancelOnError) {
@@ -551,7 +551,7 @@ class DexcomStreamProvider {
       }
 
       time = (time == null ? 0 : time! + 1);
-      (onTimerChange ?? () {})(time);
+      (onTimerChange ?? (dynamic time) {})(time!);
     });
   }
 
