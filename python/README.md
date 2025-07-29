@@ -1,1 +1,0 @@
-For Dexcom use in Python, use [pydexcom](https://github.com/gagebenne/pydexcom) (not sponsored, just a cool project). This is the Python library that I got the documentation to create this repository.

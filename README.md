@@ -25,10 +25,10 @@ The Dexcom Share API is an unofficial API found by the community that only requi
 | Feature | Dexcom Share API | Dexcom Web API v3 |
 |-----------|-----------|-----------|
 | Features | Get real-time blood glucose levels | Get retrospective glucose and data |
-| Timing | No delay | 1 to 3 hour delay
+| Data | Just glucose levels | Past glucose levels, calibration data, and lots more
 | Compatibility | Sensors: Dexcom G4+ | Sensors: Dexcom G6+ |
-| Documentation | Unofficially documented through [pydexcom](https://github.com/gagebenne/pydexcom) and my Dexcom project ([dexcom](https://github.com/Calebh101/dexcom)) | Officially documented on Dexcom's website
-| Authentication | Username and password are used to get a session | Apps are authorized by the client using OAuth 2.0
+| Documentation | Unofficially documented through projects like [pydexcom](https://github.com/gagebenne/pydexcom), [dexcom-share-api](https://github.com/aud/dexcom-share-api), and my Dexcom project ([dexcom](https://github.com/Calebh101/dexcom)) | Officially documented on Dexcom's website
+| Authentication | Username and password are sent with https requests | Apps are authorized by the client using OAuth 2.0
 
 While the Dexcom Share API can only fetch real-time blood glucose levels with no way to control range and other things, the Dexcom Web API has a lot of (officially provided) features:
 

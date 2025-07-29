@@ -13,8 +13,9 @@ The Dexcom Web API is Dexcom's official API. It uses OAuth 2.0 among other thing
 | Feature | Dexcom Share API | Dexcom Web API v3 |
 |-----------|-----------|-----------|
 | Features | Get real-time blood glucose levels | Get retrospective glucose and data |
+| Data | Just glucose levels | Past glucose levels, calibration data, and lots more
 | Compatibility | Sensors: Dexcom G4+ | Sensors: Dexcom G6+ |
-| Documentation | Unofficially documented through [pydexcom](https://github.com/gagebenne/pydexcom) and my Dexcom project ([dexcom](https://github.com/Calebh101/dexcom)) | Officially documented on Dexcom's website
+| Documentation | Unofficially documented through projects like [pydexcom](https://github.com/gagebenne/pydexcom), [dexcom-share-api](https://github.com/aud/dexcom-share-api), and my Dexcom project ([dexcom](https://github.com/Calebh101/dexcom)) | Officially documented on Dexcom's website
 | Authentication | Username and password are sent with https requests | Apps are authorized by the client using OAuth 2.0
 
 While the Dexcom Share API can only fetch real-time blood glucose levels with no way to control range and other things, the Dexcom Web API has a lot of (officially provided) features:
@@ -26,7 +27,7 @@ While the Dexcom Share API can only fetch real-time blood glucose levels with no
 - Glucose values
 - Events
 
-The main downside to the Web API, along with other things: **it has a data delay of one to three hours, which is not preferable for 99% of apps**.
+The main downside to the Web API, along with other things: **it has a data delay of one to three hours**, which is not preferable for some apps.
 
 This package documents and supports the Dexcom Share API, not the Web API.
 
@@ -60,25 +61,10 @@ DexcomAppIds(us: "your-us-app-id", ous: "your-ous-app-id", jp: "your-jp-app-id")
 ```
 
 ```dart
-try {
-    // getReadings can be optionally set to false (the default is true) if you just want to check the session success
-    await dexcom.verify();
-    print("Verified account");
-} catch (e) {
-    print("Unable to verify account: $e");
-}
+DexcomVerificationResult verificationResult = dexcom.verify();
 ```
-This logs the user into their account and gets their data. If both succeed (or if the session succeeds and getReadings is set to false), it will return
-```json
-{"success": true, "error": "none"};
-```
-However, if it fails, it will return:
-```json
-// If the session fails (wrong username/password):
-{"success": false, "error": "session"}
-// If the readings cannot be retrieved (not any readings in the last 48 hours may be a cause):
-{"success": false, "error": "readings"}
-```
+
+This logs the user into their account to check if the entered credentials are valid. This will return a `DexcomVerificationResult` object.
 
 ## Retrieving data:
 ```dart
@@ -96,7 +82,7 @@ try {
 if (response != null) {
     print("Data received: $response");
     return response;
-else {
+} else {
     print("Data is null");
 }
 ```
@@ -168,10 +154,10 @@ DexcomStreamProvider provider = DexcomStreamProvider(object, oneAtATime: bool, d
 ```
 
 Parameters:
-object: The Dexcom object to listen to.
-maxCount: How many pieces of data should be sent with each new incoming data. This is recommended to be a low number.
-debug: Show debug logs.
-buffer: How long the function should wait after the timer hits the interval before fetching. This is used to give the client's Dexcom time to upload its reading.
+- `object`: The Dexcom object to listen to.
+- `maxCount`: How many pieces of data should be sent with each new incoming data. This is recommended to be a low number.
+- `debug`: Show debug logs.
+- `buffer`: How long the function should wait after the timer hits the interval before fetching. This is used to give the client's Dexcom time to upload its reading.
 
 ```dart
 provider.listen(

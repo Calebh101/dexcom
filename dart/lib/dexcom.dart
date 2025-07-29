@@ -133,6 +133,20 @@ class DexcomGlucoseRetrievalException implements Exception {
   }
 }
 
+/// Used when verifying a user's credentials.
+class DexcomVerificationResult {
+  /// If true, then user verified. If false, then not verified.
+  final bool status;
+
+  /// Status is required.
+  const DexcomVerificationResult(this.status);
+
+  @override
+  String toString() {
+    return "DexcomVerificationResult(status: $status)";
+  }
+}
+
 /// Main class that controls all of the functions.
 class Dexcom {
   /// Region used to decide which server and app ID to use.
@@ -366,14 +380,14 @@ class Dexcom {
   }
 
   /// Verifies that the user has the correct username and password by creating a session to confirm that the user used valid credentials.
-  Future<Map<String, dynamic>> verify() async {
+  Future<DexcomVerificationResult> verify() async {
     _init();
     try {
       await _createSession();
-      return {"success": true, "error": "none"};
+      return DexcomVerificationResult(true);
     } catch (e) {
       _log("$e", function: "verify");
-      return {"success": false, "error": "readings"};
+      return DexcomVerificationResult(false);
     }
   }
 
@@ -480,7 +494,7 @@ class DexcomStreamProvider {
 
   /// Start listening to incoming Dexcom readings.
   void listen(
-      {void Function(List<dynamic> data)? onData,
+      {void Function(List<DexcomReading> data)? onData,
       void Function(Error error)? onError,
       void Function(int time)? onTimerChange,
       bool cancelOnError = false}) async {
