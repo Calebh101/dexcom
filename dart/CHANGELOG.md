@@ -73,3 +73,10 @@
 - `verify()` now returns a `DexcomVerificationResult` instead of a `Map`
 - Improved typing
 - Improved documentation
+
+### 1.0.3 - 7/29/25
+- Fixed a couple bugs
+
+### 1.0.5 - 8/21/25
+- Fixed a bug with the timer being reset on refresh
+- Changed the listener so that if it's been a while since the last tick it refreshes (E.G. waking up from sleep)

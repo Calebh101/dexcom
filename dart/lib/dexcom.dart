@@ -354,6 +354,8 @@ class Dexcom {
   }
 
   /// Gets glucose readings using minutes and maxCount.
+  ///
+  /// The latest reading is the first
   Future<List<DexcomReading>?> getGlucoseReadings(
       {int? minutes, int? maxCount, bool allowRetrySession = true}) async {
     _init();
@@ -469,6 +471,12 @@ class DexcomStreamProvider {
   // To track if someone is already listening.
   bool _isListening = false;
 
+  // To trigger a refresh;
+  bool _refresh = false;
+
+  // Last time the timer ticked.
+  DateTime _lastTick = DateTime.now();
+
   /// Requires an object (which is a Dexcom object) for listening to.
   DexcomStreamProvider(this.object,
       {this.buffer = 0, this.maxCount = 2, this.debug}) {
@@ -489,13 +497,16 @@ class DexcomStreamProvider {
 
   /// Refresh the listener.
   void refresh() {
-    time = 0;
+    _log("Refreshing...", function: "provider.refresh");
+    _refresh = true;
   }
 
   /// Start listening to incoming Dexcom readings.
+  ///
+  /// [onData] outputs data with the latest reading being the first.
   void listen(
       {void Function(List<DexcomReading> data)? onData,
-      void Function(Error error)? onError,
+      void Function(Object error)? onError,
       void Function(int time)? onTimerChange,
       bool cancelOnError = false}) async {
     if (_isListening == true) {
@@ -510,13 +521,17 @@ class DexcomStreamProvider {
     time = null;
 
     Timer.periodic(Duration(seconds: 1), (Timer timer) async {
+      if (DateTime.now().difference(_lastTick).inSeconds > 30) refresh();
+      _lastTick = DateTime.now();
+
       if (_controller!.isClosed) {
         timer.cancel();
         return;
       }
 
       if (_isProcessing == false) {
-        if (time == null || ((time ?? 0) >= (_interval + buffer))) {
+        if (_refresh || time == null || ((time ?? 0) >= (_interval + buffer))) {
+          _refresh = false;
           _isProcessing = true;
           time ??= 0;
 
@@ -531,10 +546,10 @@ class DexcomStreamProvider {
             }
 
             _controller!.add(data);
-            (onData ?? () {})(data);
+            if (onData != null) onData(data);
           } catch (e) {
             _controller!.addError(e);
-            (onError ?? () {})(e);
+            if (onError != null) onError(e);
             print("DexcomStreamProvider listen error: $e");
 
             if (cancelOnError) {
@@ -547,7 +562,7 @@ class DexcomStreamProvider {
       }
 
       time = (time == null ? 0 : time! + 1);
-      (onTimerChange ?? () {})(time);
+      if (onTimerChange != null) onTimerChange(time!);
     });
   }
 
