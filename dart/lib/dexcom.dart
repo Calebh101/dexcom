@@ -527,10 +527,13 @@ class DexcomStreamProvider {
   /// Requires an object (which is a Dexcom object) for listening to.
   DexcomStreamProvider(this.object,
       {this.buffer = 0, this.maxCount = 2, bool? debug}) {
-    if (buffer < 0)
+    if (buffer < 0) {
       throw DexcomInitializationError("Buffer cannot be negative.");
-    if (maxCount < 1)
+    }
+    if (maxCount < 1) {
       throw DexcomInitializationError("Max count cannot be less than 1.");
+    }
+
     _debug = debug;
   }
 
