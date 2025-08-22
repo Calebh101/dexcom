@@ -66,7 +66,7 @@ class DexcomAppIds {
     }
 
     if (us == null && ous == null && jp == null) {
-      throw Exception("At least one app ID must be provided.");
+      throw DexcomInitializationError("At least one app ID must be provided.");
     }
   }
 
@@ -78,19 +78,21 @@ class DexcomAppIds {
         if (us != null) {
           return us!;
         } else {
-          throw Exception("A US app ID was not provided.");
+          throw DexcomInitializationError("A US app ID was not provided.");
         }
       case DexcomRegion.ous:
         if (ous != null) {
           return ous!;
         } else {
-          throw Exception("An out-of-US app ID was not provided.");
+          throw DexcomInitializationError(
+              "An out-of-US app ID was not provided.");
         }
       case DexcomRegion.jp:
         if (jp != null) {
           return jp!;
         } else {
-          throw Exception("A Japanese app ID was not provided.");
+          throw DexcomInitializationError(
+              "A Japanese app ID was not provided.");
         }
     }
   }
@@ -101,7 +103,7 @@ class DexcomAppIds {
   }
 }
 
-/// Thrown when an error occurs during Dexcom authentication.
+/// Thrown when an error occurs during Dexcom account authentication.
 class DexcomAuthorizationException implements Exception {
   /// Message of the exception.
   final String? message;
@@ -113,7 +115,8 @@ class DexcomAuthorizationException implements Exception {
   /// Called when thrown.
   @override
   String toString() {
-    return "DexcomAuthorizationException${message != null ? ": $message" : ""}";
+    return ["DexcomAuthorizationException", if (message != null) message]
+        .join(": ");
   }
 }
 
@@ -129,7 +132,30 @@ class DexcomGlucoseRetrievalException implements Exception {
   /// Called when thrown.
   @override
   String toString() {
-    return "DexcomGlucoseRetrievalException${message != null ? ": $message" : ""}";
+    return ["DexcomGlucoseRetrievalException", if (message != null) message]
+        .join(": ");
+  }
+}
+
+/// Thrown when an error occurs intializing a [Dexcom] or a [DexcomStreamProvider].
+class DexcomInitializationError implements Error {
+  /// Message of the error.
+  final String? message;
+
+  /// Stack trace of the error.
+  @override
+  final StackTrace stackTrace;
+
+  /// Message is optional.
+  DexcomInitializationError([this.message])
+      : this.stackTrace = StackTrace.current;
+
+  /// Converts the error to a string.
+  /// Called when thrown.
+  @override
+  String toString() {
+    return ["DexcomInitializationError", if (message != null) message]
+        .join(": ");
   }
 }
 
@@ -149,14 +175,29 @@ class DexcomVerificationResult {
 
 /// Main class that controls all of the functions.
 class Dexcom {
+  // Region used to decide which server and app ID to use.
+  DexcomRegion? _region;
+
+  // Application IDs to be used.
+  DexcomAppIds? _appIds;
+
   /// Region used to decide which server and app ID to use.
-  DexcomRegion? region;
+  DexcomRegion get region => _region ?? _getRegion();
+
+  /// Application IDs to be used.
+  DexcomAppIds get appIds =>
+      _appIds ??
+      DexcomAppIds(
+        us: "d89443d2-327c-4a6f-89e5-496bbb0317db",
+        ous: "d89443d2-327c-4a6f-89e5-496bbb0317db",
+        jp: "d8665ade-9673-4e27-9ff6-92db4ce13d13",
+      );
 
   /// Username used to login to the Dexcom Share API; can be email, username, or phone number.
-  String? username;
+  final String? username;
 
   /// Password used to login to the Dexcom Share API.
-  String? password;
+  final String? password;
 
   // Account ID for the account using username and password.
   String? _accountId;
@@ -165,28 +206,25 @@ class Dexcom {
   String? _sessionId;
 
   /// Debug mode (shows extra logging).
-  bool debug;
+  final bool debug;
 
   /// Default amount of minutes fetched (from now).
-  int minutes;
+  final int minutes;
 
   /// Default maximum amount of glucose readings that can be fetched.
-  int maxCount;
-
-  /// Application IDs to be used.
-  DexcomAppIds? appIds;
+  final int maxCount;
 
   /// Makes a Dexcom with the username, password, and region (optional).
   Dexcom(
       {this.username,
       this.password,
-      this.region,
       this.debug = false,
       this.minutes = 60,
       this.maxCount = 12,
-      this.appIds}) {
+      DexcomRegion? region,
+      DexcomAppIds? appIds}) {
     if (maxCount < 1) {
-      throw Exception("Max count cannot be less than 1.");
+      throw DexcomInitializationError("Max count cannot be less than 1.");
     }
   }
 
@@ -253,7 +291,7 @@ class Dexcom {
     _init();
     try {
       final url = Uri.parse(
-          "${_getBaseUrl(region!)}/${_dexcomData["endpoint"]["account"]}");
+          "${_getBaseUrl(region)}/${_dexcomData["endpoint"]["account"]}");
       _log("Fetching account ID from $url", function: "_getAccountId");
 
       final response = await http.post(
@@ -262,7 +300,7 @@ class Dexcom {
         body: jsonEncode({
           'accountName': username,
           'password': password,
-          'applicationId': appIds!.get(code: region),
+          'applicationId': appIds.get(code: region),
         }),
       );
 
@@ -279,7 +317,7 @@ class Dexcom {
   Future<String> _getSessionId() async {
     try {
       final url = Uri.parse(
-          "${_getBaseUrl(region!)}/${_dexcomData["endpoint"]["session"]}");
+          "${_getBaseUrl(region)}/${_dexcomData["endpoint"]["session"]}");
       _log("Fetching session ID from $url", function: "_getSessionId");
 
       final response = await http.post(
@@ -288,7 +326,7 @@ class Dexcom {
         body: jsonEncode({
           'accountId': _accountId,
           'password': password,
-          'applicationId': appIds!.get(code: region),
+          'applicationId': appIds.get(code: region),
         }),
       );
       if (response.statusCode == 200) {
@@ -327,7 +365,7 @@ class Dexcom {
 
     try {
       final url = Uri.parse(
-          "${_getBaseUrl(region!)}/${_dexcomData["endpoint"]["data"]}");
+          "${_getBaseUrl(region)}/${_dexcomData["endpoint"]["data"]}");
       _log("Fetching glucose readings from $url",
           function: "_getGlucoseReadings");
 
@@ -393,7 +431,7 @@ class Dexcom {
     }
   }
 
-  /// Verifies that the user has the correct username and password by creating a session and optionally getting the data to confirm that the user used valid credentials.
+  /*/// Verifies that the user has the correct username and password by creating a session and optionally getting the data to confirm that the user used valid credentials.
   @Deprecated("Use verify instead. This function was deprecated as of 1.0.0.")
   Future<Map<String, dynamic>> verifyLogin(String username, String password,
       {bool getReadings = true, int? minutes}) async {
@@ -418,22 +456,16 @@ class Dexcom {
       _log("$e", function: "verifyLogin.readings");
       return {"success": false, "error": "readings"};
     }
-  }
+  }*/
 
   // Takes care of variables and pre-flight checks
   void _init() {
-    region ??= _getRegion();
-    appIds ??= DexcomAppIds(
-        us: "d89443d2-327c-4a6f-89e5-496bbb0317db",
-        ous: "d89443d2-327c-4a6f-89e5-496bbb0317db",
-        jp: "d8665ade-9673-4e27-9ff6-92db4ce13d13");
-
     if (username == null) {
-      throw Exception("Username cannot be null.");
+      throw DexcomInitializationError("Username cannot be null.");
     }
 
     if (password == null) {
-      throw Exception("Password cannot be null.");
+      throw DexcomInitializationError("Password cannot be null.");
     }
   }
 
@@ -454,19 +486,25 @@ class DexcomStreamProvider {
   int _interval = 300;
 
   /// Buffer (in seconds) that is added onto interval to give the client's Dexcom time to upload readings. This can help prevent skipping over a reading.
-  int buffer;
+  final int buffer;
 
   // Controller of the Dexcom reading stream.
   StreamController<List>? _controller;
 
-  /// Debug mode (default is set to object's setting)
-  bool? debug;
+  /// Debug mode (default is set to object's setting).
+  bool get debug => _debug ?? object.debug;
+
+  // Contains debug mode.
+  bool? _debug;
 
   /// How many pieces of data should be sent with each new incoming data. This is recommended to be a low number.
-  int maxCount;
+  final int maxCount;
 
-  /// Timer for the listener. Should not be cahnged
-  int? time;
+  /// Timer for the listener.
+  int get time => _time ?? 0;
+
+  // Timer for the listener.
+  int? _time;
 
   // To track if someone is already listening.
   bool _isListening = false;
@@ -477,16 +515,23 @@ class DexcomStreamProvider {
   // Last time the timer ticked.
   DateTime _lastTick = DateTime.now();
 
+  // Previous tick time to compare with the current tick.
+  DateTime _previousTick = DateTime.now();
+
+  // Called when a refresh is triggered.
+  void Function()? _onRefresh;
+
+  // Last time a refresh started. This is used for detecting how long a refresh took.
+  DateTime _lastRefreshStart = DateTime.now();
+
   /// Requires an object (which is a Dexcom object) for listening to.
   DexcomStreamProvider(this.object,
-      {this.buffer = 0, this.maxCount = 2, this.debug}) {
-    if (buffer < 0) {
-      throw Exception("Buffer cannot be negative.");
-    }
-
-    if (maxCount < 1) {
-      throw Exception("Max count cannot be less than 1.");
-    }
+      {this.buffer = 0, this.maxCount = 2, bool? debug}) {
+    if (buffer < 0)
+      throw DexcomInitializationError("Buffer cannot be negative.");
+    if (maxCount < 1)
+      throw DexcomInitializationError("Max count cannot be less than 1.");
+    _debug = debug;
   }
 
   /// Converts the current DexcomStreamProvider object to a string.
@@ -499,29 +544,52 @@ class DexcomStreamProvider {
   void refresh() {
     _log("Refreshing...", function: "provider.refresh");
     _refresh = true;
+    _lastRefreshStart = DateTime.now();
+    if (_onRefresh != null) _onRefresh!();
+  }
+
+  void _onTickDebug() {
+    DateFormat format = DateFormat('HH:mm:ss.SSS');
+    _log(
+        "Tick: ${format.format(DateTime.now())} (last tick: ${format.format(_lastTick)}) (previous last tick: ${format.format(_previousTick)})",
+        function: "provider._onTickDebug");
   }
 
   /// Start listening to incoming Dexcom readings.
+  /// Make sure to call [close] when done listening to free up resources.
   ///
   /// [onData] outputs data with the latest reading being the first.
+  ///
+  /// [onError] outputs any errors that occur.
+  ///
+  /// [onTimerChange] outputs the current time since the last reading (in seconds). Note that this may not be accurate, and can vary/freeze if the app goes to sleep or multiple refreshes are triggered.
+  ///
+  /// [onRefresh] outputs when a refresh is triggered.
+  ///
+  /// [onRefreshEnd] outputs when a refresh ends. This can be used to calculate how long a refresh took. [onRefreshEnd] outputs the seconds taken as a [Duration].
   void listen(
       {void Function(List<DexcomReading> data)? onData,
       void Function(Object error)? onError,
       void Function(int time)? onTimerChange,
+      void Function()? onRefresh,
+      void Function(Duration timeTaken)? onRefreshEnd,
       bool cancelOnError = false}) async {
     if (_isListening == true) {
-      throw Exception("This stream is already being listened to.");
+      throw DexcomInitializationError(
+          "This stream is already being listened to.");
     } else {
       _isListening = true;
     }
 
     _init();
+    _onRefresh = onRefresh;
     bool _isProcessing = false;
     _controller = StreamController<List>();
-    time = null;
+    _time = null;
 
     Timer.periodic(Duration(seconds: 1), (Timer timer) async {
-      if (DateTime.now().difference(_lastTick).inSeconds > 30) refresh();
+      _previousTick = _lastTick;
+      if (DateTime.now().difference(_lastTick).inSeconds > 10) refresh();
       _lastTick = DateTime.now();
 
       if (_controller!.isClosed) {
@@ -530,19 +598,23 @@ class DexcomStreamProvider {
       }
 
       if (_isProcessing == false) {
-        if (_refresh || time == null || ((time ?? 0) >= (_interval + buffer))) {
+        if (_refresh ||
+            _time == null ||
+            ((_time ?? 0) >= (_interval + buffer))) {
           _refresh = false;
           _isProcessing = true;
-          time ??= 0;
+          _time ??= 0;
 
           try {
             _log("Getting glucose data", function: "listen.Timer");
             List<DexcomReading> data =
                 (await object.getGlucoseReadings(maxCount: maxCount))!;
-            time = DateTime.now().difference(data[0].displayTime).inSeconds;
+            if (data.isNotEmpty)
+              _time =
+                  DateTime.now().difference(data.first.displayTime).inSeconds;
 
-            if (time! >= _interval) {
-              time = 0;
+            if (_time! >= _interval) {
+              _time = 0;
             }
 
             _controller!.add(data);
@@ -550,19 +622,23 @@ class DexcomStreamProvider {
           } catch (e) {
             _controller!.addError(e);
             if (onError != null) onError(e);
-            print("DexcomStreamProvider listen error: $e");
+            _log("DexcomStreamProvider listen error: $e",
+                function: "listen.Timer");
 
             if (cancelOnError) {
               rethrow;
             }
           } finally {
             _isProcessing = false;
+            if (onRefreshEnd != null)
+              onRefreshEnd(DateTime.now().difference(_lastRefreshStart));
           }
         }
       }
 
-      time = (time == null ? 0 : time! + 1);
-      if (onTimerChange != null) onTimerChange(time!);
+      _onTickDebug();
+      _time = (_time == null ? 0 : _time! + 1);
+      if (onTimerChange != null) onTimerChange(_time!);
     });
   }
 
@@ -573,7 +649,7 @@ class DexcomStreamProvider {
     }
 
     _init();
-    time = null;
+    _time = null;
     _controller!.close();
     _isListening = false;
   }
@@ -581,15 +657,11 @@ class DexcomStreamProvider {
   // Custom logging solution
   void _log(String message, {required String function}) {
     _init();
-    if (debug!) {
-      print("dexcom provider: $function: $message");
-    }
+    if (_debug!) print("dexcom.provider: $function: $message");
   }
 
   // Initialize variables and checks
-  void _init() {
-    debug ??= object.debug;
-  }
+  void _init() {}
 
   /// Stream that can be listened to for new Dexcom readings.
   Stream<List>? get stream => _controller?.stream;

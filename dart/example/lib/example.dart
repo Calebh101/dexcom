@@ -3,8 +3,15 @@ import 'dart:io';
 import 'package:dexcom/dexcom.dart';
 
 void main({String username = "", String password = ""}) async {
+  // If DEXCOM_DEBUG is enabled (set to "true" or is greater than 0), then enable debug logging.
+  String debug = Platform.environment['DEXCOM_DEBUG'] ?? "false";
+
   // Set up the main [dexcom] object
-  Dexcom dexcom = Dexcom(username: username, password: password, debug: true);
+  Dexcom dexcom = Dexcom(
+    username: username,
+    password: password,
+    debug: debug == "true" || (int.tryParse(debug) ?? 0) > 0,
+  );
 
   // Set up the listener (provider)
   DexcomStreamProvider provider = DexcomStreamProvider(
@@ -24,6 +31,9 @@ void main({String username = "", String password = ""}) async {
     onData: (data) => print('Stream received: $data'),
     onError: (error) => print('Stream errored: $error'),
     onTimerChange: (time) => print("Stream timer: $time"),
+    onRefresh: () => print("Stream refresh"),
+    onRefreshEnd:
+        (time) => print("Stream refresh ended after ${time.inMilliseconds}ms"),
   );
 
   // Listen for key inputs

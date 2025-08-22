@@ -53,7 +53,7 @@ First, let's go over the parameters:
 
 What is DexcomAppIds?
 
-DexcomAppIds is an object that stores the application IDs needed to send requests. There's a US option, an out-of US (OUS) option, and a Japan (JP) option. US and OUS can sometimes be used interchangeably, so you only have to specify one if you don't want to specify both. The Japanese option is separately managed. If your program is used in a region that you have not set an application ID for, then your program will error and not work. There is a default set, in case you don't have your own. (Which is common since this uses an undocumented API.)
+DexcomAppIds is an object that stores the application IDs needed to send requests. There's a US option, an out-of US (OUS) option, and a Japan (JP) option. US and OUS can sometimes be used interchangeably, so you only have to specify one if you don't want to specify both. The Japanese option is separately managed. If your program is used in a region that you have not set an application ID for, then the Dexcom object will error. There is a default set, in case you don't have your own. (Which is common since this uses an undocumented API.)
 Example:
 
 ```dart
@@ -163,12 +163,22 @@ Parameters:
 provider.listen(
     onData: (data) => print('Stream received: $data'),
     onError: (error) => print('Stream errored: $error'),
-    onTimerChange: (time) print("Stream timer: $time"),
-    cancelOnError: false, // True if the listener should shut down when an error is received.
+    onTimerChange: (time) => print("Stream timer: $time"),
+    onRefresh: () => print("Stream refresh"),
+    onRefreshEnd: (time) => print("Stream refresh ended after ${time.inMilliseconds}ms"),
+    cancelOnError: false, // True if the listener should cancel when an error is received.
 );
 ```
 
-This will call onData when new data is received, onError when it throws an error, and onTimerChange when the timer is changed, which is normally every second. (onTimerChange is mainly a debug option, as you can access provider.timer to get the current timer instead of using onTimerChange.)
+This will call `onData` when new data is received, `onError` when it throws an error, and `onTimerChange` when the timer is changed, which is normally every second.
+
+Function parameters:
+
+- `onData`: Called when new Dexcom data is received. This also includes manual/automatic refreshes.
+- `onError`: Called when the stream errors.
+- `onTimerChange`: Called when the timer is changed, which is every second; but sometimes it can slow down when refreshing.
+- `onRefresh`: Called when the provider starts refreshing.
+- `onRefreshEnd`: Called when the provider is done refreshing. This also includes how long it took to refresh, in a `Duration` object.
 
 To refresh the readings early:
 

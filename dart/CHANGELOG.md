@@ -80,3 +80,9 @@
 ### 1.0.5 - 8/21/25
 - Fixed a bug with the timer being reset on refresh
 - Changed the listener so that if it's been a while since the last tick it refreshes (E.G. waking up from sleep)
+
+### 1.0.6 - 8/22/25
+- Added `onRefresh` and `onRefreshEnd` in listener
+- Added `DexcomInitializationError`
+- Removed `verifyLogin` in `Dexcom`
+- Fixed bug with automatic refresh not working
