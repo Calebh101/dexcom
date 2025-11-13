@@ -2,7 +2,11 @@ import 'dart:io';
 
 import 'package:dexcom/dexcom.dart';
 
-void main({String username = "", String password = ""}) async {
+void main({
+  String username = "",
+  String password = "",
+  bool verbose = false,
+}) async {
   // If DEXCOM_DEBUG is enabled (set to "true" or is greater than 0), then enable debug logging.
   String debug = Platform.environment['DEXCOM_DEBUG'] ?? "false";
 
@@ -22,6 +26,7 @@ void main({String username = "", String password = ""}) async {
 
   print("Dexcom: $dexcom");
   print("Provider: $provider");
+  if (verbose) print("Logging in verbose mode");
 
   print("Dexcom readings: ${await dexcom.getGlucoseReadings(maxCount: 3)}");
   print("Dexcom verify: ${await dexcom.verify()}");
@@ -30,7 +35,9 @@ void main({String username = "", String password = ""}) async {
   provider.listen(
     onData: (data) => print('Stream received: $data'),
     onError: (error) => print('Stream errored: $error'),
-    onTimerChange: (time) => print("Stream timer: $time"),
+    onTimerChange: (time) {
+      if (verbose) print("Stream timer: $time");
+    },
     onRefresh: () => print("Stream refresh"),
     onRefreshEnd:
         (time) => print("Stream refresh ended after ${time.inMilliseconds}ms"),

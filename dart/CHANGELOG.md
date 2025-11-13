@@ -86,3 +86,7 @@
 - Added `DexcomInitializationError`
 - Removed `verifyLogin` in `Dexcom`
 - Fixed bug with automatic refresh not working
+
+### 1.0.7 - 11/13/25
+- Fixed bug with the `region` and `appIds` parameters in the `Dexcom` constructor not being used
+- Improved example with verbose mode and proper arguments
