@@ -226,6 +226,8 @@ class Dexcom {
     if (maxCount < 1) {
       throw DexcomInitializationError("Max count cannot be less than 1.");
     }
+    _region = region;
+    _appIds = appIds;
   }
 
   /// Converts the current Dexcom object to a string.
