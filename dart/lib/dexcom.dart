@@ -275,7 +275,8 @@ class Dexcom {
     DateTime? formatTime(String time) {
       try {
         return DateTime.fromMillisecondsSinceEpoch(int.parse(
-            (RegExp(r"Date\((.*)\)").firstMatch(time)!.group(1)!).split('-')[0]));
+            (RegExp(r"Date\((.*)\)").firstMatch(time)!.group(1)!)
+                .split('-')[0]));
       } catch (e) {
         print("Unable to format time:n\$e");
         return null;
@@ -303,7 +304,7 @@ class Dexcom {
     try {
       final url = Uri.parse(
           "${_getBaseUrl(region)}/${_dexcomData["endpoint"]["account"]}");
-      _log("Fetching account ID from $url", function: "_getAccountId");
+      _log("Fetching account ID from $url", function: "Dexcom._getAccountId");
 
       final response = await http.post(
         url,
@@ -329,7 +330,7 @@ class Dexcom {
     try {
       final url = Uri.parse(
           "${_getBaseUrl(region)}/${_dexcomData["endpoint"]["session"]}");
-      _log("Fetching session ID from $url", function: "_getSessionId");
+      _log("Fetching session ID from $url", function: "Dexcom._getSessionId");
 
       final response = await http.post(
         url,
@@ -356,10 +357,10 @@ class Dexcom {
     _init();
     try {
       _accountId ??= await _getAccountId();
-      _log("Retrieved account ID", function: "_createSession");
+      _log("Retrieved account ID", function: "Dexcom._createSession");
       if (_accountId != null) {
         _sessionId ??= await _getSessionId();
-        _log("Retrieved session ID", function: "_createSession");
+        _log("Retrieved session ID", function: "Dexcom._createSession");
       } else {
         throw DexcomAuthorizationException(
             "Could not retrieve Account ID: Account ID returned null.");
@@ -378,7 +379,7 @@ class Dexcom {
       final url = Uri.parse(
           "${_getBaseUrl(region)}/${_dexcomData["endpoint"]["data"]}");
       _log("Fetching glucose readings from $url",
-          function: "_getGlucoseReadings");
+          function: "Dexcom._getGlucoseReadings");
 
       final response = await http.post(
         url,
@@ -437,37 +438,10 @@ class Dexcom {
       await _createSession();
       return DexcomVerificationResult(true);
     } catch (e) {
-      _log("$e", function: "verify");
+      _log("$e", function: "Dexcom.verify");
       return DexcomVerificationResult(false);
     }
   }
-
-  /*/// Verifies that the user has the correct username and password by creating a session and optionally getting the data to confirm that the user used valid credentials.
-  @Deprecated("Use verify instead. This function was deprecated as of 1.0.0.")
-  Future<Map<String, dynamic>> verifyLogin(String username, String password,
-      {bool getReadings = true, int? minutes}) async {
-    _init();
-    try {
-      await _createSession();
-      if (getReadings) {
-        try {
-          await getGlucoseReadings(
-              minutes: minutes ?? this.minutes,
-              maxCount: 1,
-              allowRetrySession: false);
-          return {"success": true, "error": "none"};
-        } catch (e) {
-          _log("$e", function: "verifyLogin.session");
-          return {"success": false, "error": "session"};
-        }
-      } else {
-        return {"success": true, "error": "none"};
-      }
-    } catch (e) {
-      _log("$e", function: "verifyLogin.readings");
-      return {"success": false, "error": "readings"};
-    }
-  }*/
 
   // Takes care of variables and pre-flight checks
   void _init() {
@@ -483,7 +457,8 @@ class Dexcom {
   // Custom logging solution
   void _log(String message, {required String function}) {
     if (debug) {
-      print("dexcom: $function: $message");
+      print(
+          "[dexcom] [${DateTime.now().toUtc().toIso8601String()}] $function: $message");
     }
   }
 }
@@ -556,7 +531,7 @@ class DexcomStreamProvider {
 
   /// Refresh the listener.
   void refresh() {
-    _log("Refreshing...", function: "provider.refresh");
+    _log("Refreshing...", function: "DexcomStreamProvider.refresh");
     _refresh = true;
     _lastRefreshStart = DateTime.now();
     if (_onRefresh != null) _onRefresh!();
@@ -566,7 +541,7 @@ class DexcomStreamProvider {
     DateFormat format = DateFormat('HH:mm:ss.SSS');
     _log(
         "Tick: ${format.format(DateTime.now())} (last tick: ${format.format(_lastTick)}) (previous last tick: ${format.format(_previousTick)})",
-        function: "provider._onTickDebug");
+        function: "DexcomStreamProvider._onTickDebug");
   }
 
   /// Start listening to incoming Dexcom readings.
@@ -620,7 +595,8 @@ class DexcomStreamProvider {
           _time ??= 0;
 
           try {
-            _log("Getting glucose data", function: "listen.Timer");
+            _log("Getting glucose data",
+                function: "DexcomStreamProvider.listen.Timer");
             List<DexcomReading> data =
                 (await object.getGlucoseReadings(maxCount: maxCount))!;
             if (data.isNotEmpty)
@@ -637,7 +613,7 @@ class DexcomStreamProvider {
             _controller!.addError(e);
             if (onError != null) onError(e);
             _log("DexcomStreamProvider listen error: $e",
-                function: "listen.Timer");
+                function: "DexcomStreamProvider.listen.Timer");
 
             if (cancelOnError) {
               rethrow;
@@ -671,7 +647,9 @@ class DexcomStreamProvider {
   // Custom logging solution
   void _log(String message, {required String function}) {
     _init();
-    if (_debug ?? false) print("dexcom.provider: $function: $message");
+    if (_debug ?? false)
+      print(
+          "[dexcom] [${DateTime.now().toUtc().toIso8601String()}] $function: $message");
   }
 
   // Initialize variables and checks
