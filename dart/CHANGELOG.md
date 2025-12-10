@@ -90,3 +90,6 @@
 ### 1.0.7 - 11/13/25
 - Fixed bug with the `region` and `appIds` parameters in the `Dexcom` constructor not being used
 - Improved example with verbose mode and proper arguments
+
+### 1.0.8 - 12/10/25
+- Fixed some issues with null check operators and error handling

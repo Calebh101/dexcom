@@ -272,18 +272,27 @@ class Dexcom {
   List<DexcomReading> _process(List<Map<String, dynamic>> data) {
     List<DexcomReading> items = [];
 
-    DateTime formatTime(String time) {
-      return DateTime.fromMillisecondsSinceEpoch(int.parse(
-          (RegExp(r"Date\((.*)\)").firstMatch(time)!.group(1)!).split('-')[0]));
+    DateTime? formatTime(String time) {
+      try {
+        return DateTime.fromMillisecondsSinceEpoch(int.parse(
+            (RegExp(r"Date\((.*)\)").firstMatch(time)!.group(1)!).split('-')[0]));
+      } catch (e) {
+        print("Unable to format time:n\$e");
+        return null;
+      }
     }
 
     data.forEach((item) {
-      DexcomReading reading = DexcomReading(
-          systemTime: formatTime(item["ST"]),
-          displayTime: formatTime(item["DT"]),
-          value: item["Value"],
-          trend: _getTrend(item["Trend"]));
-      items.add(reading);
+      try {
+        DexcomReading reading = DexcomReading(
+            systemTime: formatTime(item["ST"])!,
+            displayTime: formatTime(item["DT"])!,
+            value: item["Value"],
+            trend: _getTrend(item["Trend"]));
+        items.add(reading);
+      } catch (e) {
+        _log("Invalid reading: $e", function: "Dexcom._process");
+      }
     });
 
     return items;
@@ -662,7 +671,7 @@ class DexcomStreamProvider {
   // Custom logging solution
   void _log(String message, {required String function}) {
     _init();
-    if (_debug!) print("dexcom.provider: $function: $message");
+    if (_debug ?? false) print("dexcom.provider: $function: $message");
   }
 
   // Initialize variables and checks
