@@ -43,6 +43,22 @@ String _getBaseUrl(DexcomRegion region) {
   }
 }
 
+// Get a time from a reading's ST/DT/WT.
+DateTime? _getReadingTime(String time) {
+  try {
+    DateTime? parseOutput = DateTime.tryParse(time);
+    if (parseOutput != null) return parseOutput;
+
+    // The API returns the date in a different format.
+    return DateTime.fromMillisecondsSinceEpoch(int.parse(
+        (RegExp(r"Date\((.*)\)").firstMatch(time)!.group(1)!)
+            .split('-')[0]));
+  } catch (e) {
+    print("Unable to format time:n\$e");
+    return null;
+  }
+}
+
 void __log(String _class, String function, String input) {
   print("[dexcom.$_class] [${DateTime.now().toUtc()}] [$function] $input");
 }
@@ -99,6 +115,15 @@ class DexcomAppIds {
               "A Japanese app ID was not provided.");
         }
     }
+  }
+
+  /// Return a `Map<String, String?>` of this object.
+  Map<String, String?> toJson() {
+    return {
+      "us": us,
+      "ous": ous,
+      "jp": jp,
+    };
   }
 
   @override
@@ -168,12 +193,22 @@ class DexcomVerificationResult {
   /// If true, then user verified. If false, then not verified.
   final bool status;
 
+  final Object? error;
+
   /// Status is required.
-  const DexcomVerificationResult(this.status);
+  const DexcomVerificationResult(this.status, [this.error]);
 
   @override
   String toString() {
     return "DexcomVerificationResult(status: $status)";
+  }
+
+  /// Turn this object into a `Map<String, Object?>`, containing [status] and [error].
+  Map<String, Object?> toJson() {
+    return {
+      "status": status,
+      "error": error,
+    };
   }
 }
 
@@ -290,25 +325,9 @@ class Dexcom {
   List<DexcomReading> _process(List<Map<String, dynamic>> data) {
     List<DexcomReading> items = [];
 
-    DateTime? formatTime(String time) {
-      try {
-        // The API returns the date in a different format.
-        return DateTime.fromMillisecondsSinceEpoch(int.parse(
-            (RegExp(r"Date\((.*)\)").firstMatch(time)!.group(1)!)
-                .split('-')[0]));
-      } catch (e) {
-        print("Unable to format time:n\$e");
-        return null;
-      }
-    }
-
     data.forEach((item) {
       try {
-        DexcomReading reading = DexcomReading(
-            systemTime: formatTime(item["ST"])!,
-            displayTime: formatTime(item["DT"])!,
-            value: item["Value"],
-            trend: _getTrend(item["Trend"]));
+        DexcomReading reading = DexcomReading.fromJson(item);
         items.add(reading);
       } catch (e) {
         _log("Invalid reading: $e", function: "Dexcom._process");
@@ -476,7 +495,7 @@ class Dexcom {
     } catch (e) {
       _log("Error verifying:$e", function: "Dexcom.verify");
       _updateStatus(DexcomUpdateStatus.verifying, true);
-      return DexcomVerificationResult(false);
+      return DexcomVerificationResult(false, e);
     }
   }
 
@@ -523,7 +542,13 @@ class DexcomStreamProvider {
   final int maxCount;
 
   /// Timer for the listener.
+  ///
+  /// You can set this to an updated time if you want.
   int get time => _time ?? 0;
+
+  set time(int value) {
+    _time = value;
+  }
 
   // Timer for the listener.
   int? _time;
@@ -539,6 +564,9 @@ class DexcomStreamProvider {
 
   // Previous tick time to compare with the current tick.
   DateTime _previousTick = DateTime.now();
+
+  // The time of the last reading.
+  DateTime _lastReadingTime = DateTime(0);
 
   // Called when a refresh is triggered.
   void Function()? _onRefresh;
@@ -637,9 +665,11 @@ class DexcomStreamProvider {
                   function: "DexcomStreamProvider.listen.Timer");
               List<DexcomReading> data =
                   (await object.getGlucoseReadings(maxCount: maxCount))!;
-              if (data.isNotEmpty)
+              if (data.isNotEmpty) {
+                _lastReadingTime = data.first.displayTime;
                 _time =
                     DateTime.now().difference(data.first.displayTime).inSeconds;
+              }
 
               if (_time! >= _interval) {
                 _time = 0;
@@ -666,7 +696,7 @@ class DexcomStreamProvider {
       }
 
       _onTickDebug();
-      _time = (_time == null ? 0 : _time! + 1);
+      _time = ((DateTime.now().millisecondsSinceEpoch - _lastReadingTime.millisecondsSinceEpoch) / 1000).toInt();
       if (onTimerChange != null) onTimerChange(_time!);
     });
   }
@@ -820,19 +850,28 @@ class DexcomReading {
       required this.value,
       required this.trend});
 
+  /// Get a [DexcomReading] from a `Map<String, dynamic>`.
+  factory DexcomReading.fromJson(Map<String, dynamic> input) {
+    return DexcomReading(
+      systemTime: _getReadingTime(input["ST"])!,
+      displayTime: _getReadingTime(input["DT"])!,
+      value: input["Value"],
+      trend: Dexcom._getTrend(input["Trend"]));
+  }
+
   /// Convert the reading to JSON.
-  Map toJson() {
+  Map<String, dynamic> toJson() {
     return {
-      "ST": systemTime,
-      "DT": displayTime,
+      "ST": systemTime.toIso8601String(),
+      "DT": displayTime.toIso8601String(),
       "Value": value,
-      "Trend": trend.convert(),
+      "Trend": trend.stringify(),
     };
   }
 
   /// Convert the reading to a string.
   @override
   String toString() {
-    return "DexcomReading(systemTime: $systemTime, displayTime: $displayTime, value: $value, trend: ${trend.convert()})";
+    return "DexcomReading(systemTime: $systemTime, displayTime: $displayTime, value: $value, trend: ${trend.stringify()})";
   }
 }
