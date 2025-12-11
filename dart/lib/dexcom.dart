@@ -43,6 +43,10 @@ String _getBaseUrl(DexcomRegion region) {
   }
 }
 
+void __log(String _class, String function, String input) {
+  print("[dexcom.$_class] [${DateTime.now().toUtc()}] [$function] $input");
+}
+
 /// Class for managing and retrieving app IDs.
 class DexcomAppIds {
   /// US app ID.
@@ -174,6 +178,8 @@ class DexcomVerificationResult {
 }
 
 /// Main class that controls all of the functions.
+///
+/// `onStatusUpdate` is called when something happens. It's called when we start fetching the account ID, when we finish fetching the account ID, we start fetching the session ID, when we finish fetching the session ID, we start fetching glucose readings, and when we finish fetching glucose readings. `status` represents the operation being referenced, and `finished` is false when the operation starts, and true when the operation ends. (Note that this means`onStatusUpdate` is called again when the operation finishes.)
 class Dexcom {
   // Region used to decide which server and app ID to use.
   DexcomRegion? _region;
@@ -214,7 +220,12 @@ class Dexcom {
   /// Default maximum amount of glucose readings that can be fetched.
   final int maxCount;
 
+  // Called when the status updates, like we start fetching the account ID.
+  final void Function(DexcomUpdateStatus status, bool finished) _onStatusUpdate;
+
   /// Makes a Dexcom with the username, password, and region (optional).
+  ///
+  /// [onStatusUpdate] is called when something happens. It's called when we start fetching the account ID, when we finish fetching the account ID, we start fetching the session ID, when we finish fetching the session ID, we start fetching glucose readings, and when we finish fetching glucose readings. `status` represents the operation being referenced, and `finished` is false when the operation starts, and true when the operation ends. (Note that this means [onStatusUpdate] is called again when the operation finishes.)
   Dexcom(
       {this.username,
       this.password,
@@ -222,10 +233,12 @@ class Dexcom {
       this.minutes = 60,
       this.maxCount = 12,
       DexcomRegion? region,
-      DexcomAppIds? appIds}) {
+      DexcomAppIds? appIds,
+      void Function(DexcomUpdateStatus status, bool finished)? onStatusUpdate}) : _onStatusUpdate = onStatusUpdate ?? ((DexcomUpdateStatus status, bool finished) {}) {
     if (maxCount < 1) {
       throw DexcomInitializationError("Max count cannot be less than 1.");
     }
+
     _region = region;
     _appIds = appIds;
   }
@@ -238,12 +251,12 @@ class Dexcom {
     return "Dexcom(username: ${username ?? "null"}, password: ${password != null ? (showPassword ? password : ("*" * password!.length)) : "null"}, region: $region, debug: $debug)";
   }
 
-  // Removes quotes from the uuids
-  String _formatUuid(String uuid) {
+  // Removes quotes from the uuids.
+  static String _formatUuid(String uuid) {
     return uuid.replaceAll('"', '');
   }
 
-  DexcomTrend _getTrend(String trend) {
+  static DexcomTrend _getTrend(String trend) {
     switch (trend) {
       case "Flat":
         return DexcomTrend.flat;
@@ -268,12 +281,18 @@ class Dexcom {
     }
   }
 
-  // Processes each reading and turns them into [DexcomReading]s
+  void _updateStatus(DexcomUpdateStatus status, bool finished) {
+    _log("Status update: $status (${status.pretty}) (finished: $finished)", function: "Dexcom._updateStatus");
+    _onStatusUpdate.call(status, finished);
+  }
+
+  // Processes each reading and turns them into [DexcomReading]s.
   List<DexcomReading> _process(List<Map<String, dynamic>> data) {
     List<DexcomReading> items = [];
 
     DateTime? formatTime(String time) {
       try {
+        // The API returns the date in a different format.
         return DateTime.fromMillisecondsSinceEpoch(int.parse(
             (RegExp(r"Date\((.*)\)").firstMatch(time)!.group(1)!)
                 .split('-')[0]));
@@ -301,6 +320,8 @@ class Dexcom {
 
   Future<String> _getAccountId() async {
     _init();
+    _updateStatus(DexcomUpdateStatus.fetchingAccountId, false);
+
     try {
       final url = Uri.parse(
           "${_getBaseUrl(region)}/${_dexcomData["endpoint"]["account"]}");
@@ -317,16 +338,21 @@ class Dexcom {
       );
 
       if (response.statusCode == 200) {
+        _updateStatus(DexcomUpdateStatus.fetchingAccountId, true);
         return _formatUuid(response.body);
       } else {
         throw DexcomAuthorizationException('Could not retrieve Account ID');
       }
     } catch (e) {
+      _updateStatus(DexcomUpdateStatus.fetchingAccountId, true);
       rethrow;
     }
   }
 
   Future<String> _getSessionId() async {
+    _init();
+    _updateStatus(DexcomUpdateStatus.fetchingSessionId, false);
+
     try {
       final url = Uri.parse(
           "${_getBaseUrl(region)}/${_dexcomData["endpoint"]["session"]}");
@@ -343,11 +369,13 @@ class Dexcom {
       );
       if (response.statusCode == 200) {
         String responseS = _formatUuid(response.body);
+        _updateStatus(DexcomUpdateStatus.fetchingSessionId, true);
         return responseS;
       } else {
         throw DexcomAuthorizationException('Could not retrieve Session ID');
       }
     } catch (e) {
+      _updateStatus(DexcomUpdateStatus.fetchingSessionId, true);
       rethrow;
     }
   }
@@ -372,6 +400,9 @@ class Dexcom {
 
   Future<List<DexcomReading>> _getGlucoseReadings(
       {int? minutes, int? maxCount}) async {
+    _init();
+    _updateStatus(DexcomUpdateStatus.fetchingGlucose, false);
+
     minutes ??= this.minutes;
     maxCount ??= this.maxCount;
 
@@ -392,6 +423,7 @@ class Dexcom {
       );
 
       if (response.statusCode == 200) {
+        _updateStatus(DexcomUpdateStatus.fetchingGlucose, true);
         return _process(
             List<Map<String, dynamic>>.from(jsonDecode(response.body)));
       } else {
@@ -399,6 +431,7 @@ class Dexcom {
             "Unable to fetch readings: Status code ${response.statusCode}");
       }
     } catch (e) {
+      _updateStatus(DexcomUpdateStatus.fetchingGlucose, false);
       rethrow;
     }
   }
@@ -434,11 +467,15 @@ class Dexcom {
   /// Verifies that the user has the correct username and password by creating a session to confirm that the user used valid credentials.
   Future<DexcomVerificationResult> verify() async {
     _init();
+    _updateStatus(DexcomUpdateStatus.verifying, false);
+
     try {
       await _createSession();
+      _updateStatus(DexcomUpdateStatus.verifying, true);
       return DexcomVerificationResult(true);
     } catch (e) {
-      _log("$e", function: "Dexcom.verify");
+      _log("Error verifying:$e", function: "Dexcom.verify");
+      _updateStatus(DexcomUpdateStatus.verifying, true);
       return DexcomVerificationResult(false);
     }
   }
@@ -457,8 +494,7 @@ class Dexcom {
   // Custom logging solution
   void _log(String message, {required String function}) {
     if (debug) {
-      print(
-          "[dexcom] [${DateTime.now().toUtc().toIso8601String()}] $function: $message");
+      __log("Dexcom", function, message);
     }
   }
 }
@@ -578,7 +614,8 @@ class DexcomStreamProvider {
 
     Timer.periodic(Duration(seconds: 1), (Timer timer) async {
       _previousTick = _lastTick;
-      if (DateTime.now().difference(_lastTick).inSeconds > 10) refresh();
+      if (DateTime.now().difference(_lastTick).inSeconds > 10) refresh(); // If old readings
+      if ((_time ?? 0) >= (_interval + buffer)) refresh(); // If we've waited longer than _interval and buffer
       _lastTick = DateTime.now();
 
       if (_controller!.isClosed) {
@@ -588,41 +625,43 @@ class DexcomStreamProvider {
 
       if (_isProcessing == false) {
         if (_refresh ||
-            _time == null ||
-            ((_time ?? 0) >= (_interval + buffer))) {
+            _time == null) {
           _refresh = false;
           _isProcessing = true;
           _time ??= 0;
 
-          try {
-            _log("Getting glucose data",
-                function: "DexcomStreamProvider.listen.Timer");
-            List<DexcomReading> data =
-                (await object.getGlucoseReadings(maxCount: maxCount))!;
-            if (data.isNotEmpty)
-              _time =
-                  DateTime.now().difference(data.first.displayTime).inSeconds;
+          // Make it run in the background
+          (() async {
+            try {
+              _log("Getting glucose data",
+                  function: "DexcomStreamProvider.listen.Timer");
+              List<DexcomReading> data =
+                  (await object.getGlucoseReadings(maxCount: maxCount))!;
+              if (data.isNotEmpty)
+                _time =
+                    DateTime.now().difference(data.first.displayTime).inSeconds;
 
-            if (_time! >= _interval) {
-              _time = 0;
+              if (_time! >= _interval) {
+                _time = 0;
+              }
+
+              _controller!.add(data);
+              if (onData != null) onData(data);
+            } catch (e) {
+              _controller!.addError(e);
+              if (onError != null) onError(e);
+              _log("DexcomStreamProvider listen error: $e",
+                  function: "DexcomStreamProvider.listen.Timer");
+
+              if (cancelOnError) {
+                rethrow;
+              }
+            } finally {
+              _isProcessing = false;
+              if (onRefreshEnd != null)
+                onRefreshEnd(DateTime.now().difference(_lastRefreshStart));
             }
-
-            _controller!.add(data);
-            if (onData != null) onData(data);
-          } catch (e) {
-            _controller!.addError(e);
-            if (onError != null) onError(e);
-            _log("DexcomStreamProvider listen error: $e",
-                function: "DexcomStreamProvider.listen.Timer");
-
-            if (cancelOnError) {
-              rethrow;
-            }
-          } finally {
-            _isProcessing = false;
-            if (onRefreshEnd != null)
-              onRefreshEnd(DateTime.now().difference(_lastRefreshStart));
-          }
+          })();
         }
       }
 
@@ -647,9 +686,10 @@ class DexcomStreamProvider {
   // Custom logging solution
   void _log(String message, {required String function}) {
     _init();
-    if (_debug ?? false)
-      print(
-          "[dexcom] [${DateTime.now().toUtc().toIso8601String()}] $function: $message");
+
+    if (_debug ?? false) {
+      __log("DexcomStreamProvider", function, message);
+    }
   }
 
   // Initialize variables and checks
@@ -671,32 +711,24 @@ enum DexcomRegion {
   jp,
 }
 
-/// Provides extra functions for a DexcomTrend.
-extension DexcomTrendExtension on DexcomTrend {
-  /// Convert a DexcomTrend to a string.
-  String convert([DexcomTrend? trend]) {
-    trend ??= this;
-    switch (trend) {
-      case DexcomTrend.flat:
-        return "Flat";
-      case DexcomTrend.fortyFiveDown:
-        return "FortyFiveDown";
-      case DexcomTrend.fortyFiveUp:
-        return "FortyFiveUp";
-      case DexcomTrend.singleDown:
-        return "SingleDown";
-      case DexcomTrend.singleUp:
-        return "SingleUp";
-      case DexcomTrend.doubleDown:
-        return "DoubleDown";
-      case DexcomTrend.doubleUp:
-        return "DoubleUp";
-      case DexcomTrend.nonComputable:
-        return "NonComputable";
-      case DexcomTrend.none:
-        return "None";
-    }
-  }
+/// The status of the current Dexcom object.
+enum DexcomUpdateStatus {
+  /// Fetching the account ID.
+  fetchingAccountId("Fetching account ID"),
+
+  /// Fetching a new session ID.
+  fetchingSessionId("Fetching session ID"),
+
+  /// Fetching glucose readings.
+  fetchingGlucose("Fetching glucose readings"),
+
+  /// Verifying account with credentials.
+  verifying("Verifying account");
+
+  /// A pretty name for the enum.
+  final String pretty;
+
+  const DexcomUpdateStatus(this.pretty);
 }
 
 /// The trend of a Dexcom reading.
@@ -728,6 +760,41 @@ enum DexcomTrend {
   /// The graph is too wonky for Dexcom to know which way the glucose levels are going.
   /// You can try to compute it yourself if you want to.
   nonComputable,
+}
+
+/// Provides extra functions for a DexcomTrend.
+extension DexcomTrendExtension on DexcomTrend {
+  /// Convert a DexcomTrend to a string.
+  String stringify() {
+    switch (this) {
+      case DexcomTrend.flat:
+        return "Flat";
+      case DexcomTrend.fortyFiveDown:
+        return "FortyFiveDown";
+      case DexcomTrend.fortyFiveUp:
+        return "FortyFiveUp";
+      case DexcomTrend.singleDown:
+        return "SingleDown";
+      case DexcomTrend.singleUp:
+        return "SingleUp";
+      case DexcomTrend.doubleDown:
+        return "DoubleDown";
+      case DexcomTrend.doubleUp:
+        return "DoubleUp";
+      case DexcomTrend.nonComputable:
+        return "NonComputable";
+      case DexcomTrend.none:
+        return "None";
+    }
+  }
+
+  /// Convert a DexcomTrend to a string.
+  ///
+  /// [trend] is no longer used.
+  @Deprecated("Use stringify instead.")
+  String convert([DexcomTrend? trend]) {
+    return stringify();
+  }
 }
 
 /// An individual Dexcom CGM reading.

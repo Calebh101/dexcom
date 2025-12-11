@@ -14,33 +14,35 @@ void main({
   Dexcom dexcom = Dexcom(
     username: username,
     password: password,
-    debug: debug == "true" || (int.tryParse(debug) ?? 0) > 0,
+    debug: verbose || debug == "true" || (int.tryParse(debug) ?? 0) > 0,
+    onStatusUpdate: (status, finished) {
+      print("Status update: $status (${status.pretty}) (finished: $finished)");
+    },
   );
 
   // Set up the listener (provider)
   DexcomStreamProvider provider = DexcomStreamProvider(
     dexcom,
-    debug: true,
     buffer: 10,
+    debug: verbose,
   );
 
   print("Dexcom: $dexcom");
   print("Provider: $provider");
-  if (verbose) print("Logging in verbose mode");
 
   print("Dexcom readings: ${await dexcom.getGlucoseReadings(maxCount: 3)}");
   print("Dexcom verify: ${await dexcom.verify()}");
 
   // Listen to the provider
   provider.listen(
-    onData: (data) => print('Stream received: $data'),
-    onError: (error) => print('Stream errored: $error'),
+    onData: (data) => print('${DateTime.now().toUtc().toIso8601String()}: Stream received: $data'),
+    onError: (error) => print('${DateTime.now().toUtc().toIso8601String()}: Stream errored: $error'),
     onTimerChange: (time) {
-      if (verbose) print("Stream timer: $time");
+      if (dexcom.debug) print("${DateTime.now().toUtc().toIso8601String()}: Stream timer: $time");
     },
-    onRefresh: () => print("Stream refresh"),
+    onRefresh: () => print("${DateTime.now().toUtc().toIso8601String()}: Stream refreshing"),
     onRefreshEnd:
-        (time) => print("Stream refresh ended after ${time.inMilliseconds}ms"),
+        (time) => print("${DateTime.now().toUtc().toIso8601String()}: Stream refresh ended after ${time.inMilliseconds}ms"),
   );
 
   // Listen for key inputs
@@ -50,7 +52,6 @@ void main({
   stdin.listen((List<int> data) {
     for (int byte in data) {
       String char = String.fromCharCode(byte);
-      print("Received character: $char");
 
       switch (char) {
         case "r":
