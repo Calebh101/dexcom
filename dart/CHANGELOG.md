@@ -93,3 +93,11 @@
 
 ### 1.0.8 - 12/10/25
 - Fixed some issues with null check operators and error handling
+
+### 1.1.0 - 12/11/25
+- Added `DexcomUpdateStatus` and `onStatusUpdate` for `Dexcom`, so you can know when we start fetching the account ID, session ID, glucose data, etcetera.
+- Added `toJson` and `fromJson` on some objects.
+- Fixed some issues with refreshing and timing.
+
+
+**Note**: Update to this version at your own risk. This version may be unstable.

@@ -35,14 +35,28 @@ void main({
 
   // Listen to the provider
   provider.listen(
-    onData: (data) => print('${DateTime.now().toUtc().toIso8601String()}: Stream received: $data'),
-    onError: (error) => print('${DateTime.now().toUtc().toIso8601String()}: Stream errored: $error'),
+    onData:
+        (data) => print(
+          '${DateTime.now().toUtc().toIso8601String()}: Stream received: $data',
+        ),
+    onError:
+        (error) => print(
+          '${DateTime.now().toUtc().toIso8601String()}: Stream errored: $error',
+        ),
     onTimerChange: (time) {
-      if (dexcom.debug) print("${DateTime.now().toUtc().toIso8601String()}: Stream timer: $time");
+      if (dexcom.debug)
+        print(
+          "${DateTime.now().toUtc().toIso8601String()}: Stream timer: $time",
+        );
     },
-    onRefresh: () => print("${DateTime.now().toUtc().toIso8601String()}: Stream refreshing"),
+    onRefresh:
+        () => print(
+          "${DateTime.now().toUtc().toIso8601String()}: Stream refreshing",
+        ),
     onRefreshEnd:
-        (time) => print("${DateTime.now().toUtc().toIso8601String()}: Stream refresh ended after ${time.inMilliseconds}ms"),
+        (time) => print(
+          "${DateTime.now().toUtc().toIso8601String()}: Stream refresh ended after ${time.inMilliseconds}ms",
+        ),
   );
 
   // Listen for key inputs

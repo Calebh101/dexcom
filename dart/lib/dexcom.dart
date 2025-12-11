@@ -51,8 +51,7 @@ DateTime? _getReadingTime(String time) {
 
     // The API returns the date in a different format.
     return DateTime.fromMillisecondsSinceEpoch(int.parse(
-        (RegExp(r"Date\((.*)\)").firstMatch(time)!.group(1)!)
-            .split('-')[0]));
+        (RegExp(r"Date\((.*)\)").firstMatch(time)!.group(1)!).split('-')[0]));
   } catch (e) {
     print("Unable to format time:n\$e");
     return null;
@@ -269,7 +268,9 @@ class Dexcom {
       this.maxCount = 12,
       DexcomRegion? region,
       DexcomAppIds? appIds,
-      void Function(DexcomUpdateStatus status, bool finished)? onStatusUpdate}) : _onStatusUpdate = onStatusUpdate ?? ((DexcomUpdateStatus status, bool finished) {}) {
+      void Function(DexcomUpdateStatus status, bool finished)? onStatusUpdate})
+      : _onStatusUpdate =
+            onStatusUpdate ?? ((DexcomUpdateStatus status, bool finished) {}) {
     if (maxCount < 1) {
       throw DexcomInitializationError("Max count cannot be less than 1.");
     }
@@ -317,7 +318,8 @@ class Dexcom {
   }
 
   void _updateStatus(DexcomUpdateStatus status, bool finished) {
-    _log("Status update: $status (${status.pretty}) (finished: $finished)", function: "Dexcom._updateStatus");
+    _log("Status update: $status (${status.pretty}) (finished: $finished)",
+        function: "Dexcom._updateStatus");
     _onStatusUpdate.call(status, finished);
   }
 
@@ -556,8 +558,14 @@ class DexcomStreamProvider {
   // To track if someone is already listening.
   bool _isListening = false;
 
-  // To trigger a refresh;
+  // To trigger a refresh.
   bool _refresh = false;
+
+  // To pause the listener(s).
+  bool _paused = false;
+
+  /// To pause the listener(s).
+  bool get paused => _paused;
 
   // Last time the timer ticked.
   DateTime _lastTick = DateTime.now();
@@ -566,7 +574,7 @@ class DexcomStreamProvider {
   DateTime _previousTick = DateTime.now();
 
   // The time of the last reading.
-  DateTime _lastReadingTime = DateTime(0);
+  DateTime? _lastReadingTime;
 
   // Called when a refresh is triggered.
   void Function()? _onRefresh;
@@ -599,6 +607,19 @@ class DexcomStreamProvider {
     _refresh = true;
     _lastRefreshStart = DateTime.now();
     if (_onRefresh != null) _onRefresh!();
+  }
+
+  /// Pause all listeners.
+  /// The timers will still be active; call [close] to stop them.
+  void pause() {
+    _log("Pausing listeners", function: "pause");
+    _paused = true;
+  }
+
+  /// Unpause all listeners.
+  void unpause() {
+    _log("Unpausing listeners", function: "unpause");
+    _paused = false;
   }
 
   void _onTickDebug() {
@@ -641,63 +662,71 @@ class DexcomStreamProvider {
     _time = null;
 
     Timer.periodic(Duration(seconds: 1), (Timer timer) async {
-      _previousTick = _lastTick;
-      if (DateTime.now().difference(_lastTick).inSeconds > 10) refresh(); // If old readings
-      if ((_time ?? 0) >= (_interval + buffer)) refresh(); // If we've waited longer than _interval and buffer
-      _lastTick = DateTime.now();
+      if (_paused) {
+        return;
+      }
 
       if (_controller!.isClosed) {
         timer.cancel();
         return;
       }
 
-      if (_isProcessing == false) {
-        if (_refresh ||
-            _time == null) {
-          _refresh = false;
-          _isProcessing = true;
-          _time ??= 0;
+      _previousTick = _lastTick;
+      if (!_isProcessing) {
+        if (DateTime.now().difference(_lastTick).inSeconds > 10)
+          refresh(); // If old readings
+        if ((_time ?? 0) >= (_interval + buffer))
+          refresh(); // If we've waited longer than _interval and buffer
+      }
+      _lastTick = DateTime.now();
 
-          // Make it run in the background
-          (() async {
-            try {
-              _log("Getting glucose data",
-                  function: "DexcomStreamProvider.listen.Timer");
-              List<DexcomReading> data =
-                  (await object.getGlucoseReadings(maxCount: maxCount))!;
-              if (data.isNotEmpty) {
-                _lastReadingTime = data.first.displayTime;
-                _time =
-                    DateTime.now().difference(data.first.displayTime).inSeconds;
-              }
+      if (!_isProcessing && _refresh || _time == null) {
+        _refresh = false;
+        _isProcessing = true;
+        _time ??= 0;
 
-              if (_time! >= _interval) {
-                _time = 0;
-              }
-
-              _controller!.add(data);
-              if (onData != null) onData(data);
-            } catch (e) {
-              _controller!.addError(e);
-              if (onError != null) onError(e);
-              _log("DexcomStreamProvider listen error: $e",
-                  function: "DexcomStreamProvider.listen.Timer");
-
-              if (cancelOnError) {
-                rethrow;
-              }
-            } finally {
-              _isProcessing = false;
-              if (onRefreshEnd != null)
-                onRefreshEnd(DateTime.now().difference(_lastRefreshStart));
+        // Make it run in the background
+        (() async {
+          try {
+            _log("Getting glucose data",
+                function: "DexcomStreamProvider.listen.Timer");
+            List<DexcomReading> data =
+                (await object.getGlucoseReadings(maxCount: maxCount))!;
+            if (data.isNotEmpty) {
+              _lastReadingTime = data.first.displayTime;
+              _time =
+                  DateTime.now().difference(data.first.displayTime).inSeconds;
             }
-          })();
-        }
+
+            if (_time! >= _interval) {
+              _time = 0;
+            }
+
+            _controller!.add(data);
+            if (onData != null) onData(data);
+          } catch (e) {
+            _controller!.addError(e);
+            if (onError != null) onError(e);
+            _log("DexcomStreamProvider listen error: $e",
+                function: "DexcomStreamProvider.listen.Timer");
+
+            if (cancelOnError) {
+              rethrow;
+            }
+          } finally {
+            _isProcessing = false;
+            if (onRefreshEnd != null)
+              onRefreshEnd(DateTime.now().difference(_lastRefreshStart));
+          }
+        })();
       }
 
       _onTickDebug();
-      _time = ((DateTime.now().millisecondsSinceEpoch - _lastReadingTime.millisecondsSinceEpoch) / 1000).toInt();
-      if (onTimerChange != null) onTimerChange(_time!);
+      if (_lastReadingTime != null) _time = ((DateTime.now().millisecondsSinceEpoch -
+                  _lastReadingTime!.millisecondsSinceEpoch) /
+              1000)
+          .toInt();
+      if (_lastReadingTime != null && onTimerChange != null) onTimerChange(_time!);
     });
   }
 
@@ -853,10 +882,10 @@ class DexcomReading {
   /// Get a [DexcomReading] from a `Map<String, dynamic>`.
   factory DexcomReading.fromJson(Map<String, dynamic> input) {
     return DexcomReading(
-      systemTime: _getReadingTime(input["ST"])!,
-      displayTime: _getReadingTime(input["DT"])!,
-      value: input["Value"],
-      trend: Dexcom._getTrend(input["Trend"]));
+        systemTime: _getReadingTime(input["ST"])!,
+        displayTime: _getReadingTime(input["DT"])!,
+        value: input["Value"],
+        trend: Dexcom._getTrend(input["Trend"]));
   }
 
   /// Convert the reading to JSON.
