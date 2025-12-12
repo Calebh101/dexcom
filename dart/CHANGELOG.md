@@ -99,5 +99,7 @@
 - Added `toJson` and `fromJson` on some objects.
 - Fixed some issues with refreshing and timing.
 
-
 **Note**: Update to this version at your own risk. This version may be unstable.
+
+### 1.1.1 - 12/12/25
+- Fix bug with timer resetting to 0 on every refresh, regardless if we get new data or not.

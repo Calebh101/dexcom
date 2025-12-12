@@ -692,10 +692,19 @@ class DexcomStreamProvider {
                 function: "DexcomStreamProvider.listen.Timer");
             List<DexcomReading> data =
                 (await object.getGlucoseReadings(maxCount: maxCount))!;
+
             if (data.isNotEmpty) {
-              _lastReadingTime = data.first.displayTime;
-              _time =
-                  DateTime.now().difference(data.first.displayTime).inSeconds;
+              final newReadingTime = data.first.displayTime;
+
+              if (_lastReadingTime == null ||
+                  newReadingTime.isAfter(_lastReadingTime!)) {
+                _lastReadingTime = newReadingTime;
+                _time = DateTime.now().difference(newReadingTime).inSeconds;
+
+                if (_time! < _interval) {
+                  _time = 0;
+                }
+              }
             }
 
             if (_time! >= _interval) {
@@ -722,11 +731,13 @@ class DexcomStreamProvider {
       }
 
       _onTickDebug();
-      if (_lastReadingTime != null) _time = ((DateTime.now().millisecondsSinceEpoch -
-                  _lastReadingTime!.millisecondsSinceEpoch) /
-              1000)
-          .toInt();
-      if (_lastReadingTime != null && onTimerChange != null) onTimerChange(_time!);
+      if (_lastReadingTime != null)
+        _time = ((DateTime.now().millisecondsSinceEpoch -
+                    _lastReadingTime!.millisecondsSinceEpoch) /
+                1000)
+            .toInt();
+      if (_lastReadingTime != null && onTimerChange != null)
+        onTimerChange(_time!);
     });
   }
 
