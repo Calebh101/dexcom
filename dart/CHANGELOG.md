@@ -101,5 +101,5 @@
 
 **Note**: Update to this version at your own risk. This version may be unstable.
 
-### 1.1.1 - 12/12/25
+### 1.1.2 - 12/13/25
 - Fix bug with timer resetting to 0 on every refresh, regardless if we get new data or not.

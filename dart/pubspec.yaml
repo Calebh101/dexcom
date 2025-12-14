@@ -1,7 +1,7 @@
 name: dexcom
 description: >-
   Dexcom for Dart allows you to use Dexcom Share to get your Dexcom CGM data, or anybody else's, to run your application.
-version: 1.1.1
+version: 1.1.2
 homepage: https://github.com/Calebh101/dexcom
 repository: https://github.com/Calebh101/dexcom
 
