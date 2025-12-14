@@ -576,6 +576,9 @@ class DexcomStreamProvider {
   // The time of the last reading.
   DateTime? _lastReadingTime;
 
+  // The time of the last refresh. This is used differently than [_lastRefreshStart].
+  DateTime? _lastRefresh;
+
   // Called when a refresh is triggered.
   void Function()? _onRefresh;
 
@@ -680,7 +683,16 @@ class DexcomStreamProvider {
       }
       _lastTick = DateTime.now();
 
-      if (!_isProcessing && _refresh || _time == null) {
+      if (
+        !_isProcessing &&
+        (
+          _refresh ||
+          (_time == null &&
+          !(_lastRefresh != null &&
+            DateTime.now().difference(_lastRefresh!).inMilliseconds > 5000))
+        )
+      ) {
+        _lastRefresh = DateTime.now();
         _refresh = false;
         _isProcessing = true;
         _time ??= 0;
