@@ -683,15 +683,12 @@ class DexcomStreamProvider {
       }
       _lastTick = DateTime.now();
 
-      if (
-        !_isProcessing &&
-        (
-          _refresh ||
-          (_time == null &&
-          !(_lastRefresh != null &&
-            DateTime.now().difference(_lastRefresh!).inMilliseconds > 5000))
-        )
-      ) {
+      if (!_isProcessing &&
+          (_refresh ||
+              (_time == null &&
+                  !(_lastRefresh != null &&
+                      DateTime.now().difference(_lastRefresh!).inMilliseconds >
+                          5000)))) {
         _lastRefresh = DateTime.now();
         _refresh = false;
         _isProcessing = true;
