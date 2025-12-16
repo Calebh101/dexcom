@@ -23,7 +23,6 @@ void main({
   // Set up the listener (provider)
   DexcomStreamProvider provider = DexcomStreamProvider(
     dexcom,
-    buffer: 10,
     debug: verbose,
   );
 

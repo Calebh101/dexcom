@@ -53,13 +53,14 @@ DateTime? _getReadingTime(String time) {
     return DateTime.fromMillisecondsSinceEpoch(int.parse(
         (RegExp(r"Date\((.*)\)").firstMatch(time)!.group(1)!).split('-')[0]));
   } catch (e) {
-    print("Unable to format time:n\$e");
+    print("Unable to get reading time: $e");
     return null;
   }
 }
 
+// Debug function
 void __log(String _class, String function, String input) {
-  print("[dexcom.$_class] [${DateTime.now().toUtc()}] [$function] $input");
+  print("[${DateTime.now().toUtc()}] [dexcom.$_class] [$function] $input");
 }
 
 /// Class for managing and retrieving app IDs.
@@ -449,7 +450,13 @@ class Dexcom {
             List<Map<String, dynamic>>.from(jsonDecode(response.body)));
       } else {
         throw DexcomGlucoseRetrievalException(
-            "Unable to fetch readings: Status code ${response.statusCode}");
+            "Unable to fetch readings: Status code ${response.statusCode}, body: ${() {
+              try {
+                return jsonEncode(response.body);
+              } catch (_) {
+                return response.body;
+              }
+            }()}");
       }
     } catch (e) {
       _updateStatus(DexcomUpdateStatus.fetchingGlucose, false);
@@ -528,8 +535,10 @@ class DexcomStreamProvider {
   /// Interval (in seconds) that the listener will automatically fetch new readings when the interval is hit. This should not be changed.
   int _interval = 300;
 
-  /// Buffer (in seconds) that is added onto interval to give the client's Dexcom time to upload readings. This can help prevent skipping over a reading.
-  final int buffer;
+  /// Buffer that is added onto interval to give the client's Dexcom time to upload readings. This can help prevent skipping over a reading.
+  /// 
+  /// Only seconds is used here; milliseconds won't count.
+  final Duration buffer;
 
   // Controller of the Dexcom reading stream.
   StreamController<List>? _controller;
@@ -542,6 +551,11 @@ class DexcomStreamProvider {
 
   /// How many pieces of data should be sent with each new incoming data. This is recommended to be a low number.
   final int maxCount;
+
+  /// How long at least we should wait in between refresh attempts. This is measured in milliseconds.
+  /// 
+  /// This is used to avoid getting rate limited by Dexcom.
+  final int minimumRefreshInterval = 5000;
 
   /// Timer for the listener.
   ///
@@ -579,6 +593,9 @@ class DexcomStreamProvider {
   // The time of the last refresh. This is used differently than [_lastRefreshStart].
   DateTime? _lastRefresh;
 
+  // If we've passed [_lastRefresh].
+  bool _pastMinimumRefreshInterval = true;
+
   // Called when a refresh is triggered.
   void Function()? _onRefresh;
 
@@ -587,8 +604,8 @@ class DexcomStreamProvider {
 
   /// Requires an object (which is a Dexcom object) for listening to.
   DexcomStreamProvider(this.object,
-      {this.buffer = 0, this.maxCount = 2, bool? debug}) {
-    if (buffer < 0) {
+      {this.buffer = const Duration(seconds: 0), this.maxCount = 2, bool? debug}) {
+    if (buffer.inSeconds < 0) {
       throw DexcomInitializationError("Buffer cannot be negative.");
     }
     if (maxCount < 1) {
@@ -601,15 +618,22 @@ class DexcomStreamProvider {
   /// Converts the current DexcomStreamProvider object to a string.
   @override
   String toString() {
-    return "DexcomStreamProvider(object: $object, buffer: $buffer, maxCount: $maxCount, debug: $debug)";
+    return "DexcomStreamProvider(object: $object, buffer: ${buffer.inSeconds} seconds, maxCount: $maxCount, debug: $debug)";
   }
 
-  /// Refresh the listener.
-  void refresh() {
+  // Internally trigger the listener to fetch new data.
+  void _startRefresh(bool auto) {
+    _setPastMinimumRefreshInterval();
+    if (auto && !_pastMinimumRefreshInterval) return;
     _log("Refreshing...", function: "DexcomStreamProvider.refresh");
     _refresh = true;
     _lastRefreshStart = DateTime.now();
     if (_onRefresh != null) _onRefresh!();
+  }
+
+  /// Trigger the listener to fetch new data.
+  void refresh() {
+    _startRefresh(false);
   }
 
   /// Pause all listeners.
@@ -630,6 +654,11 @@ class DexcomStreamProvider {
     _log(
         "Tick: ${format.format(DateTime.now())} (last tick: ${format.format(_lastTick)}) (previous last tick: ${format.format(_previousTick)})",
         function: "DexcomStreamProvider._onTickDebug");
+  }
+
+  // Updates [_pastMinimumRefreshInterval].
+  void _setPastMinimumRefreshInterval() {
+    _pastMinimumRefreshInterval = _lastRefresh != null ? DateTime.now().difference(_lastRefresh!).inMilliseconds >= minimumRefreshInterval : true;
   }
 
   /// Start listening to incoming Dexcom readings.
@@ -677,18 +706,20 @@ class DexcomStreamProvider {
       _previousTick = _lastTick;
       if (!_isProcessing) {
         if (DateTime.now().difference(_lastTick).inSeconds > 10)
-          refresh(); // If old readings
-        if ((_time ?? 0) >= (_interval + buffer))
-          refresh(); // If we've waited longer than _interval and buffer
+          _startRefresh(true); // If old readings
+        else if ((_time ?? 0) >= (_interval + buffer.inSeconds))
+          _startRefresh(true); // If we've waited longer than _interval and buffer
       }
       _lastTick = DateTime.now();
 
+      _setPastMinimumRefreshInterval();
+
       if (!_isProcessing &&
-          (_refresh ||
-              (_time == null &&
-                  !(_lastRefresh != null &&
-                      DateTime.now().difference(_lastRefresh!).inMilliseconds >
-                          5000)))) {
+        (_lastRefresh == null ||
+          _pastMinimumRefreshInterval) &&
+            (_refresh ||
+              (_time == null) ||
+                (_time! >= (_interval + buffer.inSeconds)))) {
         _lastRefresh = DateTime.now();
         _refresh = false;
         _isProcessing = true;
