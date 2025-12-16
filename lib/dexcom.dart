@@ -8,6 +8,9 @@ import 'package:http/http.dart'
     as http; // Fetch account ID, session ID, and user data
 import 'package:intl/intl.dart'; // Get region
 
+// The last time we got an HTTP response of 429.
+DateTime? _tooManyRequestsReceived;
+
 // Gets the current locale using Intl.
 DexcomRegion _getRegion() {
   String locale = Intl.getCurrentLocale();
@@ -138,7 +141,7 @@ class DexcomAuthorizationException implements Exception {
   final String? message;
 
   /// Message is optional.
-  DexcomAuthorizationException([this.message]);
+  DexcomAuthorizationException(this.message);
 
   /// Converts the exception to a string.
   /// Called when thrown.
@@ -154,15 +157,18 @@ class DexcomGlucoseRetrievalException implements Exception {
   /// Message of the exception.
   final String? message;
 
+  /// Status code of the exception. This will be either HTTP status code, or `-1` if it's not related to HTTP.
+  final int code;
+
   /// Message is optional.
-  DexcomGlucoseRetrievalException([this.message]);
+  DexcomGlucoseRetrievalException(this.message, this.code);
 
   /// Converts the exception to a string.
   /// Called when thrown.
   @override
   String toString() {
-    return ["DexcomGlucoseRetrievalException", if (message != null) message]
-        .join(": ");
+    return ["DexcomGlucoseRetrievalException", if (message != null) ": $message", " (code: $code)"]
+        .join("");
   }
 }
 
@@ -176,7 +182,7 @@ class DexcomInitializationError implements Error {
   final StackTrace stackTrace;
 
   /// Message is optional.
-  DexcomInitializationError([this.message])
+  DexcomInitializationError(this.message)
       : this.stackTrace = StackTrace.current;
 
   /// Converts the error to a string.
@@ -193,6 +199,7 @@ class DexcomVerificationResult {
   /// If true, then user verified. If false, then not verified.
   final bool status;
 
+  /// The potential error returned from the result.
   final Object? error;
 
   /// Status is required.
@@ -320,7 +327,7 @@ class Dexcom {
 
   void _updateStatus(DexcomUpdateStatus status, bool finished) {
     _log("Status update: $status (${status.pretty}) (finished: $finished)",
-        function: "Dexcom._updateStatus");
+        function: "_updateStatus");
     _onStatusUpdate.call(status, finished);
   }
 
@@ -333,7 +340,7 @@ class Dexcom {
         DexcomReading reading = DexcomReading.fromJson(item);
         items.add(reading);
       } catch (e) {
-        _log("Invalid reading: $e", function: "Dexcom._process");
+        _log("Invalid reading: $e", function: "_process");
       }
     });
 
@@ -347,7 +354,7 @@ class Dexcom {
     try {
       final url = Uri.parse(
           "${_getBaseUrl(region)}/${_dexcomData["endpoint"]["account"]}");
-      _log("Fetching account ID from $url", function: "Dexcom._getAccountId");
+      _log("Fetching account ID from $url", function: "_getAccountId");
 
       final response = await http.post(
         url,
@@ -378,7 +385,7 @@ class Dexcom {
     try {
       final url = Uri.parse(
           "${_getBaseUrl(region)}/${_dexcomData["endpoint"]["session"]}");
-      _log("Fetching session ID from $url", function: "Dexcom._getSessionId");
+      _log("Fetching session ID from $url", function: "_getSessionId");
 
       final response = await http.post(
         url,
@@ -407,10 +414,10 @@ class Dexcom {
     _init();
     try {
       _accountId ??= await _getAccountId();
-      _log("Retrieved account ID", function: "Dexcom._createSession");
+      _log("Retrieved account ID", function: "_createSession");
       if (_accountId != null) {
         _sessionId ??= await _getSessionId();
-        _log("Retrieved session ID", function: "Dexcom._createSession");
+        _log("Retrieved session ID", function: "_createSession");
       } else {
         throw DexcomAuthorizationException(
             "Could not retrieve Account ID: Account ID returned null.");
@@ -432,7 +439,7 @@ class Dexcom {
       final url = Uri.parse(
           "${_getBaseUrl(region)}/${_dexcomData["endpoint"]["data"]}");
       _log("Fetching glucose readings from $url",
-          function: "Dexcom._getGlucoseReadings");
+          function: "_getGlucoseReadings");
 
       final response = await http.post(
         url,
@@ -449,6 +456,11 @@ class Dexcom {
         return _process(
             List<Map<String, dynamic>>.from(jsonDecode(response.body)));
       } else {
+        if (response.statusCode == 429) {
+          _log("Got signal for too many requests, delaying by 15 seconds.", function: "_getGlucoseReadings");
+          _tooManyRequestsReceived = DateTime.now();
+        }
+
         throw DexcomGlucoseRetrievalException(
             "Unable to fetch readings: Status code ${response.statusCode}, body: ${() {
               try {
@@ -456,10 +468,10 @@ class Dexcom {
               } catch (_) {
                 return response.body;
               }
-            }()}");
+            }()}", response.statusCode);
       }
     } catch (e) {
-      _updateStatus(DexcomUpdateStatus.fetchingGlucose, false);
+      _updateStatus(DexcomUpdateStatus.fetchingGlucose, true);
       rethrow;
     }
   }
@@ -502,7 +514,7 @@ class Dexcom {
       _updateStatus(DexcomUpdateStatus.verifying, true);
       return DexcomVerificationResult(true);
     } catch (e) {
-      _log("Error verifying:$e", function: "Dexcom.verify");
+      _log("Error verifying:$e", function: "verify");
       _updateStatus(DexcomUpdateStatus.verifying, true);
       return DexcomVerificationResult(false, e);
     }
@@ -556,6 +568,9 @@ class DexcomStreamProvider {
   /// 
   /// This is used to avoid getting rate limited by Dexcom.
   final int minimumRefreshInterval = 5000;
+
+  /// How long we should wait before requesting again if we get rate-limited. This is measured in milliseconds.
+  final int toWaitOnTooManyRequestsReceived = 30000;
 
   /// Timer for the listener.
   ///
@@ -658,7 +673,11 @@ class DexcomStreamProvider {
 
   // Updates [_pastMinimumRefreshInterval].
   void _setPastMinimumRefreshInterval() {
-    _pastMinimumRefreshInterval = _lastRefresh != null ? DateTime.now().difference(_lastRefresh!).inMilliseconds >= minimumRefreshInterval : true;
+    if (_tooManyRequestsReceived != null && DateTime.now().difference(_tooManyRequestsReceived!).inMilliseconds < toWaitOnTooManyRequestsReceived) {
+      _pastMinimumRefreshInterval = false;
+    } else {
+      _pastMinimumRefreshInterval = _lastRefresh != null ? DateTime.now().difference(_lastRefresh!).inMilliseconds >= minimumRefreshInterval : true;
+    }
   }
 
   /// Start listening to incoming Dexcom readings.

@@ -105,6 +105,9 @@
 - Fix bug with timer resetting to 0 on every refresh, regardless if we get new data or not.
 
 ### 1.1.3 - 12/15/25
-- Fix another bug where the package would request way too fast and get rate-limited.
+- Fix another bug where the package would request too fast and get rate-limited.
     - I never noticed this because Realtek WiFi cards are bad heh
-- The readme is now like 3x as long, I know. This is because I merged my two readmes for this project.
+- Apparently even with the above fix it can still get rate-limited? So I added a 30-second wait if we get rate-limited.
+- Added `code` property to `DexcomGlucoseRetrievalException`.
+- The readme is now like 3x as long. This is because I merged my two readmes for this project.
+- Some other bug fixes and improvements.
