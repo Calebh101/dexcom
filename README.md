@@ -12,6 +12,8 @@ Dexcom is a CGM company. They produce CGMs, or continuous glucose monitors. Thes
 
 The Dexcom Share API uses a URL to get your account ID, set up a session, then retrieve your glucose values. This makes it worlds easier to get your readings, as normally, you would have to set up a developer account, make an app, use OAuth2 to authorize said app (which requires a website), and then constantly use a refresh token to get new data. This is very tedious to do. So, this Dexcom Share API uses a direct URL to get your glucose data.
 
+To use the Dexcom Share API, you need the credentials of the **publisher** account (**not** follower), and you need to have Dexcom Share enabled. To do this, you just need to add a follower. (This can be yourself.)
+
 ## What is the Dexcom Web API, and how is it different from the Dexcom Share API?
 
 ### Summary
@@ -27,11 +29,9 @@ The Dexcom Share API is an unofficial API found by the community that only requi
 | Features | Get real-time blood glucose levels | Get retrospective glucose and data |
 | Data | Just glucose levels | Past glucose levels, calibration data, and lots more |
 | Timing | Instant | 1 hour delay in the US, 3 hour delay outside of the US |
-| Compatibility | Sensors: Dexcom G4+ | Sensors: Dexcom G6+ |
+| Compatibility | Sensors: Dexcom G4+ (except for Stelo) | Sensors: Dexcom G6+ |
 | Documentation | Unofficially documented through projects like [pydexcom](https://github.com/gagebenne/pydexcom), [dexcom-share-api](https://github.com/aud/dexcom-share-api), and my Dexcom project ([dexcom](https://github.com/Calebh101/dexcom)) | Officially documented on Dexcom's website |
 | Authentication | Username and password are sent with https requests | Apps are authorized by the client using OAuth 2.0 |
-
-**Note**: Take the compatibility section with a grain of salt.
 
 While the Dexcom Share API can only fetch real-time blood glucose levels with no way to control range and other things, the Dexcom Web API has a lot of (officially provided) features:
 
@@ -82,7 +82,7 @@ Here are the application IDs, base URLs, and endpoints that the program will use
 ```
 
 ## Account ID
-First, you need to get the account ID. This is really simple, as you just need to send a username, a password, and an application id to the server. Depending on where the user is (in the US, out of the US, or Japan), you will send the request to one of these URLs:
+First, you need to get the account ID. This is really simple, as you just need to send a username, a password, and an application ID to the server. Depending on where the user is (in the US, out of the US, or Japan), you will send the request to one of these URLs:
 
 - US: https://share2.dexcom.com/ShareWebServices/Services/General/AuthenticatePublisherAccount
 - Out of US: https://shareous1.dexcom.com/ShareWebServices/Services/General/AuthenticatePublisherAccount
@@ -110,7 +110,7 @@ const accountId = (await response.text() /* or however you get the body */).repl
 
 And your result will be: `8597cbce-1c66-4655-bf7d-a7e070638b80`.
 
-Great, now you should have an account ID! This is just step one of the process. Sigh...
+Great, now you should have an account ID! This doesn't change like the session ID, so you can store this for later.
 
 ## Session ID
 
@@ -274,17 +274,20 @@ List<dynamic>? response;
 ```
 
 First, let's go over the parameters:
-- username: username (email, password, or phone number)
-- password: password
-- region: region (set automatically if not set)
-- debug: shows extra logs
-- minutes: default for every function if not explicitly set
-- maxCount: default for every function if not explicitly set
-- appIds: DexcomAppIds
+- `username`: Username (email, password, or phone number)
+- `password`: Password
+- `region`: Region (set automatically if not set)
+- `unit`: The `DexcomGlucoseUnit` representing the units used in `DexcomReading.value` properties. This can be mg/dL or mmol/L.
+- `accountId`: ID for the account (set automatically if not set)
+- `debug`: Shows extra logs
+- `minutes`: Default for every function if not explicitly set
+- `maxCount`: Default for every function if not explicitly set
+- `appIds`: `DexcomAppIds`
+- `onStatusUpdate` and `onAccountIdUpdate`: see the DartDocs
 
-What is DexcomAppIds?
+What is `DexcomAppIds`?
 
-DexcomAppIds is an object that stores the application IDs needed to send requests. There's a US option, an out-of US (OUS) option, and a Japan (JP) option. US and OUS can sometimes be used interchangeably, so you only have to specify one if you don't want to specify both. The Japanese option is separately managed. If your program is used in a region that you have not set an application ID for, then the Dexcom object will error. There is a default set, in case you don't have your own. (Which is common since this uses an undocumented API.)
+`DexcomAppIds` is an object that stores the application IDs needed to send requests. There's a US option, an out-of US (OUS) option, and a Japan (JP) option. US and OUS can sometimes be used interchangeably, so you only have to specify one if you don't want to specify both. The Japanese option is separately managed. If your program is used in a region that you have not set an application ID for, then the Dexcom object will error. There is a default set, in case you don't have your own. (Which is common since this uses an undocumented API.)
 Example:
 
 ```dart
@@ -323,17 +326,17 @@ This actually retrieves the glucose readings from the user. If it fails, it auto
 ```json
 [
   {
-    "WT": "2022-11-22T17:29:54.000Z", 
+    "WT": "2022-11-22T17:29:54.000Z",
     "ST": "2022-11-22T17:29:54.000Z",      // system time
     "DT": "2022-11-22T11:29:54.000-06:00", // display time
-    "Value": 162, 
+    "Value": 162,
     "Trend": "FortyFiveUp"
   },
   {
-    "WT": "2022-11-22T17:24:54.000Z", 
+    "WT": "2022-11-22T17:24:54.000Z",
     "ST": "2022-11-22T17:24:54.000Z",
-    "DT": "2022-11-22T11:24:54.000-06:00", 
-    "Value": 159, 
+    "DT": "2022-11-22T11:24:54.000-06:00",
+    "Value": 159,
     "Trend": "FortyFiveUp"
   }
 ]
@@ -360,35 +363,37 @@ This is how the package will return it:
 
 As you can see, it's an array of 2 items, because that's how many I wanted the program to get. The top one (item 0) is the most recent. From the [Dexcom Web API documentation](https://developer.dexcom.com/docs/dexcomv3/endpoint-overview/#time):
 
-> "systemTime is the UTC time according to the device, whereas displayTime is the time being shown on the device to the user. Depending on the device, this time may be user-configurable, and can therefore change its offset relative to systemTime. Note that systemTime is not 'true' UTC time because of drift and/or user manipulation of the devices' clock." 
+> "systemTime is the UTC time according to the device, whereas displayTime is the time being shown on the device to the user. Depending on the device, this time may be user-configurable, and can therefore change its offset relative to systemTime. Note that systemTime is not 'true' UTC time because of drift and/or user manipulation of the devices' clock."
 
 Value is the actual glucose value taken. The trend is the arrow direction. The trend can be:
-- Flat: steady
-- FortyFiveDown: slowly falling (-1/minute)
-- FortyFiveUp: slowly rising (+1/minute)
-- SingleDown: falling (-2/minute)
-- SingleUp: rising (+2/minute)
-- DoubleDown: quickly falling (-3/minute)
-- DoubleUp: quickly rising (+3/minute)
-- None: no trend
-- NonComputable: the graph is too wonky for Dexcom to know which way the glucose levels are going. You might be able to try to compute it yourself if you wanted to.
+- `Flat`: steady
+- `FortyFiveDown`: slowly falling (-1/minute)
+- `FortyFiveUp`: slowly rising (+1/minute)
+- `SingleDown`: falling (-2/minute)
+- `SingleUp`: rising (+2/minute)
+- `DoubleDown`: quickly falling (-3/minute)
+- `DoubleUp`: quickly rising (+3/minute)
+- `None`: no trend
+- `NonComputable`: the graph is too wonky for Dexcom to know which way the glucose levels are going. You might be able to try to compute it yourself if you wanted to.
 - RateOutOfRange: the bloodsugar is rising or falling too fast to be computable. This typically happens during sensor errors, where the bloodsugar will randomly drop 50 or more before when the sensor malfunctions.
 
-The program will return DexcomTrend.flat, DexcomTrend.fortyFiveDown, etc. You can convert it to a string with `trend.convert()`.
+The program will return `DexcomTrend.flat`, `DexcomTrend.fortyFiveDown`, etc. You can convert it to a string with `trend.convert()`.
 
 ### Listening:
 
 First, make a new DexcomStreamProvider object:
 
 ```dart
-DexcomStreamProvider provider = DexcomStreamProvider(object, oneAtATime: bool, debug: bool, interval: int, buffer: int);
+DexcomStreamProvider provider = DexcomStreamProvider(...params);
 ```
 
 Parameters:
 - `object`: The Dexcom object to listen to.
-- `maxCount`: How many pieces of data should be sent with each new incoming data. This is recommended to be a low number.
+- `maxCount`: How many pieces of data should be sent with each new incoming dataset.
 - `debug`: Show debug logs.
 - `buffer`: How long the function should wait after the timer hits the interval before fetching. This is used to give the client's Dexcom time to upload its reading.
+
+**Note**: This package could make the device get temporarily rate-limited because it tries to fetch every 5 seconds if there is no new data for the first 2 minutes of no data. For this reason, `buffer` now defaults to 10 seconds.
 
 ```dart
 provider.listen(

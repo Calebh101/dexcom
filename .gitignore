@@ -25,3 +25,6 @@ migrate_working_dir/
 # Libraries should not include pubspec.lock, per https://dart.dev/guides/libraries/private-files#pubspeclock.
 .dart_tool/
 build/
+
+# Old project layout
+dart/

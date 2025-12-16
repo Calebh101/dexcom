@@ -6,10 +6,15 @@ import 'dart:convert'; // Convert JSON into URL body
 
 import 'package:http/http.dart'
     as http; // Fetch account ID, session ID, and user data
-import 'package:intl/intl.dart'; // Get region
+import 'package:intl/intl.dart'; // Get region, and date formatting
 
 // The last time we got an HTTP response of 429.
 DateTime? _tooManyRequestsReceived;
+
+// This is ran when this package logs. This is only used in debug mode.
+//
+// Set this with [Dexcom.setLoggerCallback].
+void Function(String) _loggerCallback = print;
 
 // Gets the current locale using Intl.
 DexcomRegion _getRegion() {
@@ -63,7 +68,7 @@ DateTime? _getReadingTime(String time) {
 
 // Debug function
 void __log(String _class, String function, String input) {
-  print("[${DateTime.now().toUtc()}] [dexcom.$_class] [$function] $input");
+  _loggerCallback.call("[${DateTime.now().toUtc()}] [dexcom.$_class] [$function] $input");
 }
 
 /// Class for managing and retrieving app IDs.
@@ -78,6 +83,7 @@ class DexcomAppIds {
   String? jp;
 
   /// It is recommended to provide at least US and Japanese app IDs. At least one app ID is required.
+  ///
   /// US and out-of-US app IDs can be interchangeable, so if one is provided but the other isn't, then the one that isn't will be set to the one that is provided.
   DexcomAppIds({this.us, this.ous, this.jp}) {
     if (ous == null && us != null) {
@@ -135,65 +141,50 @@ class DexcomAppIds {
   }
 }
 
-/// Thrown when an error occurs during Dexcom account authentication.
-class DexcomAuthorizationException implements Exception {
-  /// Message of the exception.
-  final String? message;
+/// An object representing a web request made to Dexcom's servers for glucose data retrieval.
+class DexcomGlucoseRequest {
+  /// The method of the request, like `GET`, `POST`, etcetera.
+  final String method;
 
-  /// Message is optional.
-  DexcomAuthorizationException(this.message);
+  /// The actual URL of the request.
+  final Uri url;
 
-  /// Converts the exception to a string.
-  /// Called when thrown.
+  /// The optional body of the request.
+  final Map<String, dynamic>? body;
+
+  /// The headers of the request.
+  final Map<String, String> headers;
+
+  /// Whether we should be verbose about the output.
+  final bool verbose;
+
+  /// An object representing a web request made to Dexcom's servers for glucose data retrieval.
+  ///
+  /// All parameters are required.
+  const DexcomGlucoseRequest({
+    required this.method,
+    required this.url,
+    required this.body,
+    required this.headers,
+    this.verbose = false,
+  });
+
   @override
   String toString() {
-    return ["DexcomAuthorizationException", if (message != null) message]
-        .join(": ");
+    return "DexcomGlucoseRequest(url: $url, body: ${body != null ? (verbose ? jsonEncode(body) : "${jsonEncode(body).length} characters") : "null"} characters, headers: ${verbose ? jsonEncode(headers) : "${jsonEncode(headers).length} characters"}${verbose ? ", CURL request: ${toCurl()}" : ""})";
   }
-}
 
-/// Thrown when an error occurs during Dexcom glucose retrieval.
-class DexcomGlucoseRetrievalException implements Exception {
-  /// Message of the exception.
-  final String? message;
+  /// Turn this [DexcomGlucoseRequest] into an executable CURL command.
+  String toCurl() {
+    String escape(String input) {
+      return input.replaceAll("'", r"'\''");
+    }
 
-  /// Status code of the exception. This will be either HTTP status code, or `-1` if it's not related to HTTP.
-  final int code;
-
-  /// Message is optional.
-  DexcomGlucoseRetrievalException(this.message, this.code);
-
-  /// Converts the exception to a string.
-  /// Called when thrown.
-  @override
-  String toString() {
-    return [
-      "DexcomGlucoseRetrievalException",
-      if (message != null) ": $message",
-      " (code: $code)"
-    ].join("");
-  }
-}
-
-/// Thrown when an error occurs intializing a [Dexcom] or a [DexcomStreamProvider].
-class DexcomInitializationError implements Error {
-  /// Message of the error.
-  final String? message;
-
-  /// Stack trace of the error.
-  @override
-  final StackTrace stackTrace;
-
-  /// Message is optional.
-  DexcomInitializationError(this.message)
-      : this.stackTrace = StackTrace.current;
-
-  /// Converts the error to a string.
-  /// Called when thrown.
-  @override
-  String toString() {
-    return ["DexcomInitializationError", if (message != null) message]
-        .join(": ");
+    return "curl -X ${method.toUpperCase()} ${url} ${List.generate(headers.length, (i) {
+      final h = headers.entries.elementAt(i);
+      return "-H '${escape(h.key)}: ${escape(h.value)}'";
+    }).join(" ")} ${body != null ? "-d '${escape(jsonEncode(body))}'" : ""}"
+        .trim();
   }
 }
 
@@ -222,9 +213,73 @@ class DexcomVerificationResult {
   }
 }
 
+/// Thrown when an error occurs during Dexcom account authentication.
+class DexcomAuthorizationException implements Exception {
+  /// Message of the exception.
+  final String? message;
+
+  /// Thrown when an error occurs during Dexcom account authentication.
+  DexcomAuthorizationException(this.message);
+
+  /// Converts the exception to a string.
+  @override
+  String toString() {
+    return ["DexcomAuthorizationException", if (message != null) message]
+        .join(": ");
+  }
+}
+
+/// Thrown when an error occurs during Dexcom glucose retrieval.
+class DexcomGlucoseRetrievalException implements Exception {
+  /// Message of the exception.
+  final String? message;
+
+  /// Status code of the exception. This will be either HTTP status code, or `-1` if it's not related to HTTP.
+  final int code;
+
+  /// The [DexcomGlucoseRequest] object that represents the request made to Dexcom.
+  final DexcomGlucoseRequest request;
+
+  /// Thrown when an error occurs during Dexcom glucose retrieval.
+  DexcomGlucoseRetrievalException(this.message, this.code, this.request);
+
+  /// Converts the exception to a string.
+  @override
+  String toString() {
+    return [
+      "DexcomGlucoseRetrievalException",
+      if (message != null) ": $message, request: ${request}",
+      " (code: $code)",
+    ].join("");
+  }
+}
+
+/// Thrown when an error occurs intializing a [Dexcom] or a [DexcomStreamProvider].
+class DexcomInitializationError implements Error {
+  /// Message of the error.
+  final String? message;
+
+  /// Stack trace of the error.
+  @override
+  final StackTrace stackTrace;
+
+  /// Thrown when an error occurs intializing a [Dexcom] or a [DexcomStreamProvider].
+  DexcomInitializationError(this.message)
+      : this.stackTrace = StackTrace.current;
+
+  /// Converts the error to a string.
+  @override
+  String toString() {
+    return ["DexcomInitializationError", if (message != null) message]
+        .join(": ");
+  }
+}
+
 /// Main class that controls all of the functions.
 ///
 /// `onStatusUpdate` is called when something happens. It's called when we start fetching the account ID, when we finish fetching the account ID, we start fetching the session ID, when we finish fetching the session ID, we start fetching glucose readings, and when we finish fetching glucose readings. `status` represents the operation being referenced, and `finished` is false when the operation starts, and true when the operation ends. (Note that this means`onStatusUpdate` is called again when the operation finishes.)
+///
+/// `onAccountIdUpdate` is called *only* when a new account ID is received, or the account ID is reset. The account ID is never reset automatically. `onAccountIdUpdate` is also not called when this object is initialized.
 class Dexcom {
   // Region used to decide which server and app ID to use.
   DexcomRegion? _region;
@@ -250,8 +305,10 @@ class Dexcom {
   /// Password used to login to the Dexcom Share API.
   final String? password;
 
-  // Account ID for the account using username and password.
-  String? _accountId;
+  /// Account ID for the account using username and password.
+  ///
+  /// If this is uninitialized, it will be fetched.
+  String? accountId;
 
   // Session ID for the session, using account ID and password.
   String? _sessionId;
@@ -265,23 +322,35 @@ class Dexcom {
   /// Default maximum amount of glucose readings that can be fetched.
   final int maxCount;
 
+  /// The unit used for reading values.
+  final DexcomGlucoseUnit unit;
+
   // Called when the status updates, like we start fetching the account ID.
   final void Function(DexcomUpdateStatus status, bool finished) _onStatusUpdate;
+
+  // Called when an account ID is received.
+  final void Function(String? id) _onAccountIdUpdate;
 
   /// Makes a Dexcom with the username, password, and region (optional).
   ///
   /// [onStatusUpdate] is called when something happens. It's called when we start fetching the account ID, when we finish fetching the account ID, we start fetching the session ID, when we finish fetching the session ID, we start fetching glucose readings, and when we finish fetching glucose readings. `status` represents the operation being referenced, and `finished` is false when the operation starts, and true when the operation ends. (Note that this means [onStatusUpdate] is called again when the operation finishes.)
+  ///
+  /// [onAccountIdUpdate] is called *only* when a new account ID is received, or the account ID is reset. The account ID is never reset automatically. [onAccountIdUpdate] is also not called when this object is initialized.
   Dexcom(
       {this.username,
       this.password,
       this.debug = false,
       this.minutes = 60,
       this.maxCount = 12,
+      this.accountId = null,
+      this.unit = DexcomGlucoseUnit.mgdL,
       DexcomRegion? region,
       DexcomAppIds? appIds,
-      void Function(DexcomUpdateStatus status, bool finished)? onStatusUpdate})
+      void Function(DexcomUpdateStatus status, bool finished)? onStatusUpdate,
+      void Function(String? id)? onAccountIdUpdate})
       : _onStatusUpdate =
-            onStatusUpdate ?? ((DexcomUpdateStatus status, bool finished) {}) {
+            onStatusUpdate ?? ((DexcomUpdateStatus status, bool finished) {}),
+        _onAccountIdUpdate = onAccountIdUpdate ?? ((String? id) {}) {
     if (maxCount < 1) {
       throw DexcomInitializationError("Max count cannot be less than 1.");
     }
@@ -296,6 +365,13 @@ class Dexcom {
   String toString({bool showPassword = false}) {
     _init();
     return "Dexcom(username: ${username ?? "null"}, password: ${password != null ? (showPassword ? password : ("*" * password!.length)) : "null"}, region: $region, debug: $debug)";
+  }
+
+  /// Set the logging function used for debug logs.
+  ///
+  /// This defaults to [print].
+  static void setLoggerCallback(void Function(String) callback) {
+    _loggerCallback = callback;
   }
 
   // Removes quotes from the uuids.
@@ -326,6 +402,14 @@ class Dexcom {
       default:
         throw ArgumentError("Invalid trend: $trend");
     }
+  }
+
+  /// Set [accountId] to null.
+  ///
+  /// Note that this does call `onAccountIdUpdate`.
+  void resetAccountId() {
+    accountId = null;
+    _onAccountIdUpdate(null);
   }
 
   void _updateStatus(DexcomUpdateStatus status, bool finished) {
@@ -371,7 +455,9 @@ class Dexcom {
 
       if (response.statusCode == 200) {
         _updateStatus(DexcomUpdateStatus.fetchingAccountId, true);
-        return _formatUuid(response.body);
+        String result = _formatUuid(response.body);
+        _onAccountIdUpdate(result);
+        return result;
       } else {
         throw DexcomAuthorizationException('Could not retrieve Account ID');
       }
@@ -394,7 +480,7 @@ class Dexcom {
         url,
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          'accountId': _accountId,
+          'accountId': accountId,
           'password': password,
           'applicationId': appIds.get(code: region),
         }),
@@ -416,10 +502,10 @@ class Dexcom {
   Future<void> _createSession() async {
     _init();
     try {
-      _accountId ??= await _getAccountId();
+      accountId ??= await _getAccountId();
       _log("Retrieved account ID", function: "_createSession");
-      if (_accountId != null) {
-        _sessionId ??= await _getSessionId();
+      if (accountId != null) {
+        _sessionId = await _getSessionId();
         _log("Retrieved session ID", function: "_createSession");
       } else {
         throw DexcomAuthorizationException(
@@ -438,20 +524,29 @@ class Dexcom {
     minutes ??= this.minutes;
     maxCount ??= this.maxCount;
 
-    try {
-      final url = Uri.parse(
-          "${_getBaseUrl(region)}/${_dexcomData["endpoint"]["data"]}");
-      _log("Fetching glucose readings from $url",
-          function: "_getGlucoseReadings");
-
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
+    final url =
+        Uri.parse("${_getBaseUrl(region)}/${_dexcomData["endpoint"]["data"]}");
+    final request = DexcomGlucoseRequest(
+        method: "POST",
+        url: url,
+        body: {
           'sessionId': _sessionId,
           'minutes': minutes,
           'maxCount': maxCount,
-        }),
+        },
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        verbose: debug);
+
+    _log("Fetching glucose readings from $url: $request",
+        function: "_getGlucoseReadings");
+
+    try {
+      final response = await http.post(
+        url,
+        headers: request.headers,
+        body: jsonEncode(request.body),
       );
 
       if (response.statusCode == 200) {
@@ -473,11 +568,17 @@ class Dexcom {
                 return response.body;
               }
             }()}",
-            response.statusCode);
+            response.statusCode,
+            request);
       }
     } catch (e) {
       _updateStatus(DexcomUpdateStatus.fetchingGlucose, true);
-      rethrow;
+
+      if (e is DexcomGlucoseRetrievalException) {
+        rethrow;
+      } else {
+        throw DexcomGlucoseRetrievalException("Unknown error: $e", -1, request);
+      }
     }
   }
 
@@ -489,18 +590,21 @@ class Dexcom {
     _init();
     minutes ??= this.minutes;
     maxCount ??= this.maxCount;
+    DexcomGlucoseRetrievalException? e;
 
     if (_sessionId != null) {
       try {
         final readings =
             await _getGlucoseReadings(minutes: minutes, maxCount: maxCount);
         return readings;
-      } catch (e) {
-        rethrow;
+      } catch (_e) {
+        if (_e is DexcomGlucoseRetrievalException) {
+          e = _e;
+        }
       }
     }
 
-    if (allowRetrySession) {
+    if (allowRetrySession && e?.code != -1 && e?.code != 429) {
       await _createSession();
       return await getGlucoseReadings(
           minutes: minutes, maxCount: maxCount, allowRetrySession: false);
@@ -624,7 +728,7 @@ class DexcomStreamProvider {
 
   /// Requires an object (which is a Dexcom object) for listening to.
   DexcomStreamProvider(this.object,
-      {this.buffer = const Duration(seconds: 0),
+      {this.buffer = const Duration(seconds: 10),
       this.maxCount = 2,
       bool? debug}) {
     if (buffer.inSeconds < 0) {
@@ -679,15 +783,23 @@ class DexcomStreamProvider {
   }
 
   // Updates [_pastMinimumRefreshInterval].
+  //
+  // First, we check if we've gotten a 429 too many requests recently. Then, we check if it's been a while since our last reading, and we've recently refreshed (last 3 minutes). Then, we check if we refreshed in just the last [minimumRefreshInterval] milliseconds.
   void _setPastMinimumRefreshInterval() {
     if (_tooManyRequestsReceived != null &&
+        // If we've recently gotten hit with 429
         DateTime.now().difference(_tooManyRequestsReceived!).inMilliseconds <
             toWaitOnTooManyRequestsReceived) {
       _pastMinimumRefreshInterval = false;
     } else {
       _pastMinimumRefreshInterval = _lastRefresh != null
-          ? DateTime.now().difference(_lastRefresh!).inMilliseconds >=
-              minimumRefreshInterval
+          ? (_lastReadingTime != null &&
+                  DateTime.now().difference(_lastReadingTime!).inSeconds > 420
+              // If it's been a while since our last reading, we shouldn't constantly refresh anymore
+              ? DateTime.now().difference(_lastRefresh!).inSeconds > 180
+              // If we've already recently refreshed
+              : DateTime.now().difference(_lastRefresh!).inMilliseconds >=
+                  minimumRefreshInterval)
           : true;
     }
   }
@@ -833,7 +945,7 @@ class DexcomStreamProvider {
   Stream<List>? get stream => _controller?.stream;
 }
 
-/// Identifiers for Dexcom regions. This is used in both the Share API and the Web API.
+/// Identifiers for regions that Dexcom uses. This is used in both the Share API and the Web API.
 enum DexcomRegion {
   /// US
   us,
@@ -843,6 +955,15 @@ enum DexcomRegion {
 
   /// Japan
   jp,
+}
+
+/// The unit used for reading calculation.
+enum DexcomGlucoseUnit {
+  /// Milligrams per deciliter.
+  mgdL,
+
+  /// Millimoles.
+  mmolL,
 }
 
 /// The status of the current Dexcom object.
@@ -942,25 +1063,32 @@ class DexcomReading {
   final DateTime displayTime;
 
   /// Blood glucose level. This is always mg/dL.
-  final int value;
+  final num mgdL;
+
+  /// The glucose value in your chosen [DexcomGlucoseUnit] unit.
+  final num value;
 
   /// Trend of the current glucose.
   final DexcomTrend trend;
 
-  /// All options are required.
+  /// An individual Dexcom CGM reading.
+  ///
+  /// [mgdL] is the raw value in mg/dL, and [value] is the value based on [unit].
   DexcomReading(
       {required this.systemTime,
       required this.displayTime,
-      required this.value,
-      required this.trend});
+      required this.mgdL,
+      required this.trend,
+      required DexcomGlucoseUnit unit}) : value = _convert(unit, mgdL);
 
   /// Get a [DexcomReading] from a `Map<String, dynamic>`.
   factory DexcomReading.fromJson(Map<String, dynamic> input) {
     return DexcomReading(
         systemTime: _getReadingTime(input["ST"])!,
         displayTime: _getReadingTime(input["DT"])!,
-        value: input["Value"],
-        trend: Dexcom._getTrend(input["Trend"]));
+        mgdL: input["Value"],
+        trend: Dexcom._getTrend(input["Trend"]),
+        unit: DexcomGlucoseUnit.mgdL);
   }
 
   /// Convert the reading to JSON.
@@ -968,7 +1096,7 @@ class DexcomReading {
     return {
       "ST": systemTime.toIso8601String(),
       "DT": displayTime.toIso8601String(),
-      "Value": value,
+      "Value": mgdL,
       "Trend": trend.stringify(),
     };
   }
@@ -976,6 +1104,13 @@ class DexcomReading {
   /// Convert the reading to a string.
   @override
   String toString() {
-    return "DexcomReading(systemTime: $systemTime, displayTime: $displayTime, value: $value, trend: ${trend.stringify()})";
+    return "DexcomReading(systemTime: $systemTime, displayTime: $displayTime, mg/dL: $mgdL, trend: ${trend.stringify()})";
+  }
+
+  static num _convert(DexcomGlucoseUnit unit, num mgdL) {
+    switch (unit) {
+      case DexcomGlucoseUnit.mgdL: return mgdL;
+      case DexcomGlucoseUnit.mmolL: return mgdL * 0.0555;
+    }
   }
 }

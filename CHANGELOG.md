@@ -1,61 +1,75 @@
 # Version 0 - Beta
 
 ## 0.0.0 - 11/14/24
+
 - Initial release
 
 ### 0.0.1 - 11/14/24
+
 - Improved documentation
 
 ## 0.1.0 - 11/15/24
+
 - Added automatic session renewal
 - Removed the requirement to have manual session renewal
 - Added `verifyLogin` function to verify a login
 - Improved functionality and error handling
 
 ### 0.1.1 - 11/15/24
+
 - Improved documentation
 
 ### 0.1.2 - 11/15/24
+
 - Removed dart:ui library in favor of using dart:io to get region, now allowing all Dart programs to use the dexcom package instead of just Flutter programs
 - Removed logging using print() in favor of Exceptions
 - Improved documentation
 
 ### 0.1.3 - 11/15/24
+
 - Added web support
 - Improved code comments
 
 ### 0.1.4 - 11/15/24
+
 - Removed uuid dependency requirement
 - Changed website URL and repository URL
 - Improved documentation
 - Improved code comments
 
 ### 0.1.5 - 11/15/24
+
 - Fixed web support issue
 - Improved code comments
 
 ### 0.1.6 - 11/15/24
+
 - Improved documentation
 
 ### 0.1.7 - 11/2/24
+
 - Included a check for Internet
 - Improved error handling
 
 ### 0.1.8 - 11/29/24
+
 - Improved documentation
 
 ### 0.1.9 - 12/14/24
+
 - Completely rewrote example as a fully functional Flutter app with detailed examples and processes
 - Updated Important Information in README.md
 
 ### 0.1.10 - 2/21/25
+
 - Updated Dexcom class to not set username and password as finals, and add an optional region parameter
 - Improved documentation
 - Updated dependencies
 
 # Version 1 - Release
 
-## 1.0.0 - Breaking Changes - 2/28/25
+## 1.0.0 - 2/28/25 - Breaking Changes
+
 - New DexcomStreamProvider class, which makes it easy to listen to a Dexcom object
 - New DexcomAppIds class, which holds app IDs
 - Example is now in Dart instead of Flutter
@@ -66,35 +80,43 @@
 - A lot of other small-to-medium changes
 
 ### 1.0.1 - 2/28/25
+
 - New errors: DexcomAuthorizationException and DexcomGlucoseRetrievalException. They are called on authorization failure and glucose retrieval failure.
 - Improved documentation
 
 ### 1.0.2 - 7/29/25 - Breaking Changes
+
 - `verify()` now returns a `DexcomVerificationResult` instead of a `Map`
 - Improved typing
 - Improved documentation
 
 ### 1.0.3 - 7/29/25
+
 - Fixed a couple bugs
 
 ### 1.0.5 - 8/21/25
+
 - Fixed a bug with the timer being reset on refresh
 - Changed the listener so that if it's been a while since the last tick it refreshes (E.G. waking up from sleep)
 
 ### 1.0.6 - 8/22/25
+
 - Added `onRefresh` and `onRefreshEnd` in listener
 - Added `DexcomInitializationError`
 - Removed `verifyLogin` in `Dexcom`
 - Fixed bug with automatic refresh not working
 
 ### 1.0.7 - 11/13/25
+
 - Fixed bug with the `region` and `appIds` parameters in the `Dexcom` constructor not being used
 - Improved example with verbose mode and proper arguments
 
 ### 1.0.8 - 12/10/25
+
 - Fixed some issues with null check operators and error handling
 
 ### 1.1.0 - 12/11/25
+
 - Added `DexcomUpdateStatus` and `onStatusUpdate` for `Dexcom`, so you can know when we start fetching the account ID, session ID, glucose data, etcetera.
 - Added `toJson` and `fromJson` on some objects.
 - Fixed some issues with refreshing and timing.
@@ -102,9 +124,11 @@
 **Note**: Update to this version at your own risk. This version may be unstable.
 
 ### 1.1.2 - 12/13/25
+
 - Fix bug with timer resetting to 0 on every refresh, regardless if we get new data or not.
 
 ### 1.1.3 - 12/15/25
+
 - Fix another bug where the package would request too fast and get rate-limited.
     - I never noticed this because Realtek WiFi cards are bad heh
 - Apparently even with the above fix it can still get rate-limited? So I added a 30-second wait if we get rate-limited.
@@ -113,3 +137,12 @@
 - Some other bug fixes and improvements.
 
 **Note**: There is currently an issue where the Dexcom API will randomly rate-limit the device running this. I'm aware of this, and am looking into a fix.
+
+## 1.1.4 - 12/16/25
+
+- **IMPORTANT! This may affect your apps!** Made `Dexcom.buffer` default to 10 seconds. There is no real solution to this rate-limiting other than trying to not spam Dexcom's servers, so this package will by default now wait 5 minutes and 10 seconds (310 seconds) before requesting more glucose data again.
+- Added `DexcomGlucoseRequest` class that's now a property of `DexcomGlucoseRetrievalException`. This tells you the request details, and has a `toCurl` function for reproduction.
+- Make account ID an optional parameter, to optionally save time fetching the account ID automatically.
+- Apparently the session token would never get refreshed, I've never had problems though, but I (maybe) fixed it.
+- Added `Dexcom.setLoggerCallback` for controlling debug logs.
+- Improved documentation.
