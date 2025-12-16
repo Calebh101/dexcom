@@ -167,8 +167,11 @@ class DexcomGlucoseRetrievalException implements Exception {
   /// Called when thrown.
   @override
   String toString() {
-    return ["DexcomGlucoseRetrievalException", if (message != null) ": $message", " (code: $code)"]
-        .join("");
+    return [
+      "DexcomGlucoseRetrievalException",
+      if (message != null) ": $message",
+      " (code: $code)"
+    ].join("");
   }
 }
 
@@ -457,7 +460,8 @@ class Dexcom {
             List<Map<String, dynamic>>.from(jsonDecode(response.body)));
       } else {
         if (response.statusCode == 429) {
-          _log("Got signal for too many requests, delaying by 15 seconds.", function: "_getGlucoseReadings");
+          _log("Got signal for too many requests, delaying by 15 seconds.",
+              function: "_getGlucoseReadings");
           _tooManyRequestsReceived = DateTime.now();
         }
 
@@ -468,7 +472,8 @@ class Dexcom {
               } catch (_) {
                 return response.body;
               }
-            }()}", response.statusCode);
+            }()}",
+            response.statusCode);
       }
     } catch (e) {
       _updateStatus(DexcomUpdateStatus.fetchingGlucose, true);
@@ -548,7 +553,7 @@ class DexcomStreamProvider {
   int _interval = 300;
 
   /// Buffer that is added onto interval to give the client's Dexcom time to upload readings. This can help prevent skipping over a reading.
-  /// 
+  ///
   /// Only seconds is used here; milliseconds won't count.
   final Duration buffer;
 
@@ -565,12 +570,12 @@ class DexcomStreamProvider {
   final int maxCount;
 
   /// How long at least we should wait in between refresh attempts. This is measured in milliseconds.
-  /// 
+  ///
   /// This is used to avoid getting rate limited by Dexcom.
   final int minimumRefreshInterval = 5000;
 
   /// How long we should wait before requesting again if we get rate-limited. This is measured in milliseconds.
-  final int toWaitOnTooManyRequestsReceived = 30000;
+  final int toWaitOnTooManyRequestsReceived = 35000;
 
   /// Timer for the listener.
   ///
@@ -619,7 +624,9 @@ class DexcomStreamProvider {
 
   /// Requires an object (which is a Dexcom object) for listening to.
   DexcomStreamProvider(this.object,
-      {this.buffer = const Duration(seconds: 0), this.maxCount = 2, bool? debug}) {
+      {this.buffer = const Duration(seconds: 0),
+      this.maxCount = 2,
+      bool? debug}) {
     if (buffer.inSeconds < 0) {
       throw DexcomInitializationError("Buffer cannot be negative.");
     }
@@ -673,10 +680,15 @@ class DexcomStreamProvider {
 
   // Updates [_pastMinimumRefreshInterval].
   void _setPastMinimumRefreshInterval() {
-    if (_tooManyRequestsReceived != null && DateTime.now().difference(_tooManyRequestsReceived!).inMilliseconds < toWaitOnTooManyRequestsReceived) {
+    if (_tooManyRequestsReceived != null &&
+        DateTime.now().difference(_tooManyRequestsReceived!).inMilliseconds <
+            toWaitOnTooManyRequestsReceived) {
       _pastMinimumRefreshInterval = false;
     } else {
-      _pastMinimumRefreshInterval = _lastRefresh != null ? DateTime.now().difference(_lastRefresh!).inMilliseconds >= minimumRefreshInterval : true;
+      _pastMinimumRefreshInterval = _lastRefresh != null
+          ? DateTime.now().difference(_lastRefresh!).inMilliseconds >=
+              minimumRefreshInterval
+          : true;
     }
   }
 
@@ -724,21 +736,22 @@ class DexcomStreamProvider {
 
       _previousTick = _lastTick;
       if (!_isProcessing) {
-        if (DateTime.now().difference(_lastTick).inSeconds > 10)
+        if (DateTime.now().difference(_lastTick).inSeconds > 10) {
           _startRefresh(true); // If old readings
-        else if ((_time ?? 0) >= (_interval + buffer.inSeconds))
-          _startRefresh(true); // If we've waited longer than _interval and buffer
+        } else if ((_time ?? 0) >= (_interval + buffer.inSeconds)) {
+          _startRefresh(
+              true); // If we've waited longer than _interval and buffer
+        }
       }
       _lastTick = DateTime.now();
 
       _setPastMinimumRefreshInterval();
 
       if (!_isProcessing &&
-        (_lastRefresh == null ||
-          _pastMinimumRefreshInterval) &&
-            (_refresh ||
+          (_lastRefresh == null || _pastMinimumRefreshInterval) &&
+          (_refresh ||
               (_time == null) ||
-                (_time! >= (_interval + buffer.inSeconds)))) {
+              (_time! >= (_interval + buffer.inSeconds)))) {
         _lastRefresh = DateTime.now();
         _refresh = false;
         _isProcessing = true;
@@ -775,8 +788,9 @@ class DexcomStreamProvider {
             }
           } finally {
             _isProcessing = false;
-            if (onRefreshEnd != null)
+            if (onRefreshEnd != null) {
               onRefreshEnd(DateTime.now().difference(_lastRefreshStart));
+            }
           }
         })();
       }
@@ -785,8 +799,9 @@ class DexcomStreamProvider {
       if (_lastReadingTime != null) {
         _time = DateTime.now().difference(_lastReadingTime!).inSeconds;
       }
-      if (_lastReadingTime != null && onTimerChange != null)
+      if (_lastReadingTime != null && onTimerChange != null) {
         onTimerChange(_time!);
+      }
     });
   }
 

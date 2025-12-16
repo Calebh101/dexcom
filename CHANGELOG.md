@@ -111,3 +111,5 @@
 - Added `code` property to `DexcomGlucoseRetrievalException`.
 - The readme is now like 3x as long. This is because I merged my two readmes for this project.
 - Some other bug fixes and improvements.
+
+**Note**: There is currently an issue where the Dexcom API will randomly rate-limit the device running this. I'm aware of this, and am looking into a fix.

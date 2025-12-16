@@ -21,10 +21,7 @@ void main({
   );
 
   // Set up the listener (provider)
-  DexcomStreamProvider provider = DexcomStreamProvider(
-    dexcom,
-    debug: verbose,
-  );
+  DexcomStreamProvider provider = DexcomStreamProvider(dexcom, debug: verbose);
 
   print("Dexcom: $dexcom");
   print("Provider: $provider");
