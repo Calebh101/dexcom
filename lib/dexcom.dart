@@ -68,7 +68,8 @@ DateTime? _getReadingTime(String time) {
 
 // Debug function
 void __log(String _class, String function, String input) {
-  _loggerCallback.call("[${DateTime.now().toUtc()}] [dexcom.$_class] [$function] $input");
+  _loggerCallback
+      .call("[${DateTime.now().toUtc()}] [dexcom.$_class] [$function] $input");
 }
 
 /// Class for managing and retrieving app IDs.
@@ -1079,7 +1080,8 @@ class DexcomReading {
       required this.displayTime,
       required this.mgdL,
       required this.trend,
-      required DexcomGlucoseUnit unit}) : value = _convert(unit, mgdL);
+      required DexcomGlucoseUnit unit})
+      : value = _convert(unit, mgdL);
 
   /// Get a [DexcomReading] from a `Map<String, dynamic>`.
   factory DexcomReading.fromJson(Map<String, dynamic> input) {
@@ -1109,8 +1111,10 @@ class DexcomReading {
 
   static num _convert(DexcomGlucoseUnit unit, num mgdL) {
     switch (unit) {
-      case DexcomGlucoseUnit.mgdL: return mgdL;
-      case DexcomGlucoseUnit.mmolL: return mgdL * 0.0555;
+      case DexcomGlucoseUnit.mgdL:
+        return mgdL;
+      case DexcomGlucoseUnit.mmolL:
+        return mgdL * 0.0555;
     }
   }
 }
