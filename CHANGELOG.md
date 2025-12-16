@@ -103,3 +103,8 @@
 
 ### 1.1.2 - 12/13/25
 - Fix bug with timer resetting to 0 on every refresh, regardless if we get new data or not.
+
+### 1.1.3 - 12/15/25
+- Fix another bug where the package would request way too fast and get rate-limited.
+    - I never noticed this because Realtek WiFi cards are bad heh
+- The readme is now like 3x as long, I know. This is because I merged my two readmes for this project.
