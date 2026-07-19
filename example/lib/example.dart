@@ -23,7 +23,7 @@ void main({
   // Set up the listener (provider)
   DexcomStreamProvider provider = DexcomStreamProvider(dexcom, debug: verbose);
 
-  print("Dexcom: $dexcom");
+  print("Dexcom: ${dexcom.toString(showPassword: true)}");
   print("Provider: $provider");
 
   print("Dexcom readings: ${await dexcom.getGlucoseReadings(maxCount: 3)}");
@@ -40,10 +40,11 @@ void main({
           '${DateTime.now().toUtc().toIso8601String()}: Stream errored: $error',
         ),
     onTimerChange: (time) {
-      if (dexcom.debug)
+      if (dexcom.debug) {
         print(
           "${DateTime.now().toUtc().toIso8601String()}: Stream timer: $time",
         );
+      }
     },
     onRefresh:
         () => print(

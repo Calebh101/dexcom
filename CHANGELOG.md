@@ -138,7 +138,7 @@
 
 **Note**: There is currently an issue where the Dexcom API will randomly rate-limit the device running this. I'm aware of this, and am looking into a fix.
 
-## 1.1.4 - 12/16/25
+### 1.1.4 - 12/16/25
 
 - **IMPORTANT! This may affect your apps!** Made `Dexcom.buffer` default to 10 seconds. There is no real solution to this rate-limiting other than trying to not spam Dexcom's servers, so this package will by default now wait 5 minutes and 10 seconds (310 seconds) before requesting more glucose data again.
 - Added `DexcomGlucoseRequest` class that's now a property of `DexcomGlucoseRetrievalException`. This tells you the request details, and has a `toCurl` function for reproduction.
@@ -146,3 +146,7 @@
 - Apparently the session token would never get refreshed, I've never had problems though, but I (maybe) fixed it.
 - Added `Dexcom.setLoggerCallback` for controlling debug logs.
 - Improved documentation.
+
+### 1.1.5 - 7/18/26
+
+- Updated README

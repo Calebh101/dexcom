@@ -6,6 +6,20 @@ I made this repository to fill the missing documentation of the Dexcom Share API
 
 This section is for documentation on the Dexcom Share API in general. **[Looking for the Dart package `dexcom`'s documentation?](#dexcom-for-dart)**
 
+**Last updated**: 7/18/26
+
+## Table of Contents
+
+1. [About](#about): About this repository and the Dexcom APIs.
+2. [How it Works](#how-it-works): The Dexcom Share API.
+    1. [Overview](#overview)
+    2. [Account ID](#account-id)
+    3. [Session ID](#session-id)
+    4. [Glucose Data](#glucose-data)
+3. [Handling Errors](#handling-errors): Handling errors from the Dexcom Share API.
+4. [Diagram of the Process](#diagram-of-the-process): A Mermaid diagram of the API.
+5. [`dexcom` for Dart](#dexcom-for-dart): The documentation for the included package for Dart.
+
 ## What is the Dexcom Share API?
 
 Dexcom is a CGM company. They produce CGMs, or continuous glucose monitors. These machines tell you your estimated bloodsugar without having to use a manual meter.
@@ -194,7 +208,7 @@ As you can see, it's an array of 2 items, because that's how many I wanted the p
 
 So, now you are ready to start using the Dexcom API in your app! I created [dexcom](https://pub.dev/packages/dexcom), a package for Dart, and there's [pydexcom](https://github.com/gagebenne/pydexcom) for Python.
 
-# Handling errors
+# Handling Errors
 
 In a production environment, you will encounter HTTP errors while making requests.
 
@@ -262,14 +276,22 @@ The main downside to the Web API, along with other things: **it has a data delay
 
 This package documents and supports the Dexcom Share API, not the Web API.
 
+## Table of Contents
+
+1. [Important Information](#important-information)
+2. [Usage](#usage)
+    1. [Verifying](#verifying)
+    2. [Retrieving Data](#retrieving-data)
+    3. [Listening](#listening)
+3. [Additional Information](#additional-information)
+
 ## Usage
 
-### Verifying:
+### Verifying
 ```dart
 String username = "username";
 String password = "password";
-String region = "region";
-var dexcom = Dexcom({username: username, password: username, region: region, debug: bool, minutes: int, maxCount: int, appIds: DexcomAppIds});
+var dexcom = Dexcom(username: username, password: password, region: String?, debug: bool, minutes: int, maxCount: int, appIds: DexcomAppIds);
 List<dynamic>? response;
 ```
 
@@ -287,7 +309,7 @@ First, let's go over the parameters:
 
 What is `DexcomAppIds`?
 
-`DexcomAppIds` is an object that stores the application IDs needed to send requests. There's a US option, an out-of US (OUS) option, and a Japan (JP) option. US and OUS can sometimes be used interchangeably, so you only have to specify one if you don't want to specify both. The Japanese option is separately managed. If your program is used in a region that you have not set an application ID for, then the Dexcom object will error. There is a default set, in case you don't have your own. (Which is common since this uses an undocumented API.)
+`DexcomAppIds` is an object that stores the application IDs needed to send requests. There's a US option, an out-of-US (OUS) option, and a Japan (JP) option. US and OUS can sometimes be used interchangeably, so you only have to specify one if you don't want to specify both. The Japanese option is separately managed. If your program is used in a region that you have not set an application ID for, then the Dexcom object will error. There is a default set, in case you don't have your own. (Which is common since this uses an undocumented API.)
 Example:
 
 ```dart
@@ -300,7 +322,7 @@ DexcomVerificationResult verificationResult = dexcom.verify();
 
 This logs the user into their account to check if the entered credentials are valid. This will return a `DexcomVerificationResult` object.
 
-### Retrieving data:
+### Retrieving Data
 ```dart
 String username = "username";
 String password = "password";
@@ -375,11 +397,11 @@ Value is the actual glucose value taken. The trend is the arrow direction. The t
 - `DoubleUp`: quickly rising (+3/minute)
 - `None`: no trend
 - `NonComputable`: the graph is too wonky for Dexcom to know which way the glucose levels are going. You might be able to try to compute it yourself if you wanted to.
-- RateOutOfRange: the bloodsugar is rising or falling too fast to be computable. This typically happens during sensor errors, where the bloodsugar will randomly drop 50 or more before when the sensor malfunctions.
+- RateOutOfRange: the bloodsugar is rising or falling too fast to be computable. This typically happens during sensor errors.
 
 The program will return `DexcomTrend.flat`, `DexcomTrend.fortyFiveDown`, etc. You can convert it to a string with `trend.convert()`.
 
-### Listening:
+### Listening
 
 First, make a new DexcomStreamProvider object:
 
@@ -429,3 +451,24 @@ This internally triggers a refresh.
 This package was based off of pydexcom for Python. I was able to port it to Flutter (from the start), and then eventually Dart (version `0.1.2`).
 
 If you have any questions or need support you can head to [my Discord server](https://discord.gg/rpsqjuZDJF).
+
+---
+
+For reference, I've included the code used for these endpoints:
+
+```dart
+class _Endpoints {
+  static const String session = "General/LoginPublisherAccountById";
+  static const String account = "General/AuthenticatePublisherAccount";
+  static const String data = "Publisher/ReadPublisherLatestGlucoseValues";
+}
+
+// Old code for reference
+Map _dexcomData = {
+  "endpoint": {
+    "session": "General/LoginPublisherAccountById",
+    "account": "General/AuthenticatePublisherAccount",
+    "data": "Publisher/ReadPublisherLatestGlucoseValues"
+  }
+};
+```

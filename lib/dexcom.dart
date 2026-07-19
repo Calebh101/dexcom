@@ -31,14 +31,13 @@ DexcomRegion _getRegion() {
   }
 }
 
-// Lists all the endpoints for the requests
-Map _dexcomData = {
-  "endpoint": {
-    "session": "General/LoginPublisherAccountById",
-    "account": "General/AuthenticatePublisherAccount",
-    "data": "Publisher/ReadPublisherLatestGlucoseValues"
-  }
-};
+// Lists all the endpoints for the requests.
+// This has replaced _dexcomData; however, the old `_dexcomData` can be seen in the README, in `Addition Information`.
+class _Endpoints {
+  static const String session = "General/LoginPublisherAccountById";
+  static const String account = "General/AuthenticatePublisherAccount";
+  static const String data = "Publisher/ReadPublisherLatestGlucoseValues";
+}
 
 String _getBaseUrl(DexcomRegion region) {
   switch (region) {
@@ -103,27 +102,19 @@ class DexcomAppIds {
   /// Get the requested app ID.
   String get({DexcomRegion? code}) {
     code ??= _getRegion();
+
     switch (code) {
       case DexcomRegion.us:
-        if (us != null) {
-          return us!;
-        } else {
-          throw DexcomInitializationError("A US app ID was not provided.");
-        }
+        return us ??
+            (throw DexcomInitializationError("A US app ID was not provided."));
       case DexcomRegion.ous:
-        if (ous != null) {
-          return ous!;
-        } else {
-          throw DexcomInitializationError(
-              "An out-of-US app ID was not provided.");
-        }
+        return ous ??
+            (throw DexcomInitializationError(
+                "An out-of-US (OUS) app ID was not provided."));
       case DexcomRegion.jp:
-        if (jp != null) {
-          return jp!;
-        } else {
-          throw DexcomInitializationError(
-              "A Japanese app ID was not provided.");
-        }
+        return jp ??
+            (throw DexcomInitializationError(
+                "A Japanese app ID was not provided."));
     }
   }
 
@@ -255,7 +246,7 @@ class DexcomGlucoseRetrievalException implements Exception {
   }
 }
 
-/// Thrown when an error occurs intializing a [Dexcom] or a [DexcomStreamProvider].
+/// Thrown when an error occurs initializing a [Dexcom] or a [DexcomStreamProvider].
 class DexcomInitializationError implements Error {
   /// Message of the error.
   final String? message;
@@ -264,7 +255,7 @@ class DexcomInitializationError implements Error {
   @override
   final StackTrace stackTrace;
 
-  /// Thrown when an error occurs intializing a [Dexcom] or a [DexcomStreamProvider].
+  /// Thrown when an error occurs initializing a [Dexcom] or a [DexcomStreamProvider].
   DexcomInitializationError(this.message)
       : this.stackTrace = StackTrace.current;
 
@@ -440,8 +431,7 @@ class Dexcom {
     _updateStatus(DexcomUpdateStatus.fetchingAccountId, false);
 
     try {
-      final url = Uri.parse(
-          "${_getBaseUrl(region)}/${_dexcomData["endpoint"]["account"]}");
+      final url = Uri.parse("${_getBaseUrl(region)}/${_Endpoints.account}");
       _log("Fetching account ID from $url", function: "_getAccountId");
 
       final response = await http.post(
@@ -460,7 +450,8 @@ class Dexcom {
         _onAccountIdUpdate(result);
         return result;
       } else {
-        throw DexcomAuthorizationException('Could not retrieve Account ID');
+        throw DexcomAuthorizationException(
+            'Could not retrieve Account ID: Status code ${response.statusCode}, body: ${response.body}');
       }
     } catch (e) {
       _updateStatus(DexcomUpdateStatus.fetchingAccountId, true);
@@ -473,8 +464,7 @@ class Dexcom {
     _updateStatus(DexcomUpdateStatus.fetchingSessionId, false);
 
     try {
-      final url = Uri.parse(
-          "${_getBaseUrl(region)}/${_dexcomData["endpoint"]["session"]}");
+      final url = Uri.parse("${_getBaseUrl(region)}/${_Endpoints.session}");
       _log("Fetching session ID from $url", function: "_getSessionId");
 
       final response = await http.post(
@@ -491,7 +481,8 @@ class Dexcom {
         _updateStatus(DexcomUpdateStatus.fetchingSessionId, true);
         return responseS;
       } else {
-        throw DexcomAuthorizationException('Could not retrieve Session ID');
+        throw DexcomAuthorizationException(
+            'Could not retrieve Session ID: Status code ${response.statusCode}, body: ${response.body}');
       }
     } catch (e) {
       _updateStatus(DexcomUpdateStatus.fetchingSessionId, true);
@@ -525,8 +516,7 @@ class Dexcom {
     minutes ??= this.minutes;
     maxCount ??= this.maxCount;
 
-    final url =
-        Uri.parse("${_getBaseUrl(region)}/${_dexcomData["endpoint"]["data"]}");
+    final url = Uri.parse("${_getBaseUrl(region)}/${_Endpoints.data}");
     final request = DexcomGlucoseRequest(
         method: "POST",
         url: url,
@@ -562,13 +552,7 @@ class Dexcom {
         }
 
         throw DexcomGlucoseRetrievalException(
-            "Unable to fetch readings: Status code ${response.statusCode}, body: ${() {
-              try {
-                return jsonEncode(response.body);
-              } catch (_) {
-                return response.body;
-              }
-            }()}",
+            "Unable to fetch readings: Status code ${response.statusCode}, body: ${response.body}",
             response.statusCode,
             request);
       }
