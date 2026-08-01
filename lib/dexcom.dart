@@ -8,9 +8,6 @@ import 'package:http/http.dart'
     as http; // Fetch account ID, session ID, and user data
 import 'package:intl/intl.dart'; // Get region, and date formatting
 
-// The last time we got an HTTP response of 429.
-DateTime? _tooManyRequestsReceived;
-
 // This is ran when this package logs. This is only used in debug mode.
 //
 // Set this with [Dexcom.setLoggerCallback].
@@ -58,7 +55,8 @@ DateTime? _getReadingTime(String time) {
 
     // The API returns the date in a different format.
     return DateTime.fromMillisecondsSinceEpoch(int.parse(
-        (RegExp(r"Date\((.*)\)").firstMatch(time)!.group(1)!).split('-')[0]));
+        (RegExp(r"Date\((.*)\)").firstMatch(time)!.group(1)!)
+            .split(RegExp(r'[+-]'))[0]));
   } catch (e) {
     print("Unable to get reading time: $e");
     return null;
@@ -163,7 +161,7 @@ class DexcomGlucoseRequest {
 
   @override
   String toString() {
-    return "DexcomGlucoseRequest(url: $url, body: ${body != null ? (verbose ? jsonEncode(body) : "${jsonEncode(body).length} characters") : "null"} characters, headers: ${verbose ? jsonEncode(headers) : "${jsonEncode(headers).length} characters"}${verbose ? ", CURL request: ${toCurl()}" : ""})";
+    return "DexcomGlucoseRequest(url: $url, body: ${body != null ? (verbose ? jsonEncode(body) : "${jsonEncode(body).length} characters") : "null"}, headers: ${verbose ? jsonEncode(headers) : "${jsonEncode(headers).length} characters"}${verbose ? ", CURL request: ${toCurl()}" : ""})";
   }
 
   /// Turn this [DexcomGlucoseRequest] into an executable CURL command.
@@ -172,7 +170,7 @@ class DexcomGlucoseRequest {
       return input.replaceAll("'", r"'\''");
     }
 
-    return "curl -X ${method.toUpperCase()} ${url} ${List.generate(headers.length, (i) {
+    return "curl -X ${method.toUpperCase()} \"${url}\" ${List.generate(headers.length, (i) {
       final h = headers.entries.elementAt(i);
       return "-H '${escape(h.key)}: ${escape(h.value)}'";
     }).join(" ")} ${body != null ? "-d '${escape(jsonEncode(body))}'" : ""}"
@@ -230,7 +228,7 @@ class DexcomGlucoseRetrievalException implements Exception {
   final int code;
 
   /// The [DexcomGlucoseRequest] object that represents the request made to Dexcom.
-  final DexcomGlucoseRequest request;
+  final DexcomGlucoseRequest? request;
 
   /// Thrown when an error occurs during Dexcom glucose retrieval.
   DexcomGlucoseRetrievalException(this.message, this.code, this.request);
@@ -256,8 +254,7 @@ class DexcomInitializationError implements Error {
   final StackTrace stackTrace;
 
   /// Thrown when an error occurs initializing a [Dexcom] or a [DexcomStreamProvider].
-  DexcomInitializationError(this.message)
-      : this.stackTrace = StackTrace.current;
+  DexcomInitializationError(this.message) : stackTrace = StackTrace.current;
 
   /// Converts the error to a string.
   @override
@@ -322,6 +319,9 @@ class Dexcom {
 
   // Called when an account ID is received.
   final void Function(String? id) _onAccountIdUpdate;
+
+  // The last time we got an HTTP response of 429.
+  DateTime? _tooManyRequestsReceived;
 
   /// Makes a Dexcom with the username, password, and region (optional).
   ///
@@ -402,6 +402,7 @@ class Dexcom {
   void resetAccountId() {
     accountId = null;
     _onAccountIdUpdate(null);
+    _sessionId = null;
   }
 
   void _updateStatus(DexcomUpdateStatus status, bool finished) {
@@ -569,7 +570,8 @@ class Dexcom {
 
   /// Gets glucose readings using minutes and maxCount.
   ///
-  /// The latest reading is the first
+  /// The latest reading is the first.
+  @Deprecated("Use fetchGlucoseReadings instead.")
   Future<List<DexcomReading>?> getGlucoseReadings(
       {int? minutes, int? maxCount, bool allowRetrySession = true}) async {
     _init();
@@ -595,6 +597,44 @@ class Dexcom {
           minutes: minutes, maxCount: maxCount, allowRetrySession: false);
     } else {
       return null;
+    }
+  }
+
+  /// Gets glucose readings using [minutes] and [maxCount].
+  ///
+  /// The latest reading is the first in the returned results (item 0).
+  ///
+  /// Can throw a [DexcomGlucoseRetrievalException].
+  ///
+  /// [minutes] and [maxCount] default to the parent [Dexcom]'s `minutes` and `maxCount` properties if not set.
+  Future<List<DexcomReading>> fetchGlucoseReadings(
+      {int? minutes, int? maxCount, bool allowRetrySession = true}) async {
+    _init();
+    minutes ??= this.minutes;
+    maxCount ??= this.maxCount;
+    Object? e;
+
+    if (_sessionId != null) {
+      try {
+        final readings =
+            await _getGlucoseReadings(minutes: minutes, maxCount: maxCount);
+        return readings;
+      } catch (_e) {
+        e = _e;
+      }
+    }
+
+    if (allowRetrySession &&
+        e is DexcomGlucoseRetrievalException? &&
+        e?.code != -1 &&
+        e?.code != 429) {
+      await _createSession();
+      return await fetchGlucoseReadings(
+          minutes: minutes, maxCount: maxCount, allowRetrySession: false);
+    } else {
+      if (e is DexcomGlucoseRetrievalException) throw e;
+      throw DexcomGlucoseRetrievalException(
+          "An unknown error occurred: $e", -1, null);
     }
   }
 
@@ -771,9 +811,11 @@ class DexcomStreamProvider {
   //
   // First, we check if we've gotten a 429 too many requests recently. Then, we check if it's been a while since our last reading, and we've recently refreshed (last 3 minutes). Then, we check if we refreshed in just the last [minimumRefreshInterval] milliseconds.
   void _setPastMinimumRefreshInterval() {
-    if (_tooManyRequestsReceived != null &&
+    if (object._tooManyRequestsReceived != null &&
         // If we've recently gotten hit with 429
-        DateTime.now().difference(_tooManyRequestsReceived!).inMilliseconds <
+        DateTime.now()
+                .difference(object._tooManyRequestsReceived!)
+                .inMilliseconds <
             toWaitOnTooManyRequestsReceived) {
       _pastMinimumRefreshInterval = false;
     } else {
@@ -860,7 +902,7 @@ class DexcomStreamProvider {
             _log("Getting glucose data",
                 function: "DexcomStreamProvider.listen.Timer");
             List<DexcomReading> data =
-                (await object.getGlucoseReadings(maxCount: maxCount))!;
+                (await object.fetchGlucoseReadings(maxCount: maxCount));
 
             if (data.isNotEmpty) {
               final newReadingTime = data.first.displayTime;
@@ -906,11 +948,12 @@ class DexcomStreamProvider {
   void close() {
     if (_isListening == false) {
       print("The stream is already closed.");
+      return;
     }
 
     _init();
     _time = null;
-    _controller!.close();
+    _controller?.close();
     _isListening = false;
   }
 
@@ -923,7 +966,7 @@ class DexcomStreamProvider {
     }
   }
 
-  // Initialize variables and checks
+  // No-op, but maybe will be used later
   void _init() {}
 
   /// Stream that can be listened to for new Dexcom readings.

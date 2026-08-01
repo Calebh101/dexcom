@@ -147,6 +147,8 @@
 - Added `Dexcom.setLoggerCallback` for controlling debug logs.
 - Improved documentation.
 
-### 1.1.5 - 7/18/26
+### 1.1.5 - 7/31/26
 
-- Updated README
+- **IMPORTANT!** Deprecated `getGlucoseReadings` in favor of `fetchGlucoseReadings`, which throws instead of returning null.
+- Fixed a bug with parsing positive timezones.
+- Updated README and improved documentation.

@@ -257,7 +257,7 @@ graph TD;
 
 `dexcom` for Dart is available on [pub.dev](https://pub.dev/packages/dexcom).
 
-dexcom for Dart allows you to use the Dexcom Share API to get your Dexcom CGM data, or anybody else's, to run your application. Includes time (in milliseconds since Unix epoch), reading, and trend. Use only your email and password to have access to all your glucose data! The username can be an email, username, or phone.
+dexcom for Dart allows you to use the Dexcom Share API to get your Dexcom CGM data, or somebody else's, to run your application. Includes time (in milliseconds since Unix epoch), reading, and trend. Use only your email and password to have access to all your glucose data! The username can be an email, username, or phone.
 
 ## Important Information
 
